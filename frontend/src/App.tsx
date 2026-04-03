@@ -2,6 +2,7 @@ import React from 'react';
 import { DashboardPage } from './pages/DashboardPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { InsightsPage } from './pages/InsightsPage';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 function App() {
   const [currentPage, setCurrentPage] = React.useState<'dashboard' | 'settings' | 'insights'>('dashboard');
@@ -47,9 +48,13 @@ function App() {
     return () => document.removeEventListener('click', handleClick);
   }, []);
 
-  if (currentPage === 'settings') return <SettingsPage />;
-  if (currentPage === 'insights') return <InsightsPage />;
-  return <DashboardPage />;
+  return (
+    <ThemeProvider>
+      {currentPage === 'settings' && <SettingsPage />}
+      {currentPage === 'insights' && <InsightsPage />}
+      {currentPage === 'dashboard' && <DashboardPage />}
+    </ThemeProvider>
+  );
 }
 
 export default App;

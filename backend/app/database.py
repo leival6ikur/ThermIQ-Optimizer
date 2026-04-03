@@ -132,6 +132,45 @@ class Database:
                 )
             """)
 
+            # Alerts table
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS alerts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    alert_type TEXT NOT NULL,
+                    severity TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    data TEXT,
+                    created_at DATETIME NOT NULL,
+                    acknowledged_at DATETIME,
+                    resolved_at DATETIME,
+                    is_active BOOLEAN NOT NULL DEFAULT 1
+                )
+            """)
+
+            # Performance metrics table (hourly calculated metrics)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS performance_metrics (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp DATETIME NOT NULL,
+                    period_start DATETIME NOT NULL,
+                    period_end DATETIME NOT NULL,
+                    cop REAL,
+                    duty_cycle REAL,
+                    cycles_per_hour REAL,
+                    ground_delta REAL,
+                    heating_delta REAL,
+                    total_kwh REAL,
+                    total_cost REAL,
+                    avg_power REAL,
+                    avg_indoor_temp REAL,
+                    avg_outdoor_temp REAL,
+                    heating_minutes INTEGER,
+                    samples_count INTEGER NOT NULL,
+                    UNIQUE(period_start, period_end)
+                )
+            """)
+
             # Create indices for performance
             await db.execute(
                 "CREATE INDEX IF NOT EXISTS idx_temp_timestamp ON temperature_readings(timestamp)"
@@ -150,6 +189,15 @@ class Database:
             )
             await db.execute(
                 "CREATE INDEX IF NOT EXISTS idx_status_hourly_hour ON heat_pump_status_hourly(hour_start)"
+            )
+            await db.execute(
+                "CREATE INDEX IF NOT EXISTS idx_alerts_created ON alerts(created_at)"
+            )
+            await db.execute(
+                "CREATE INDEX IF NOT EXISTS idx_alerts_active ON alerts(is_active)"
+            )
+            await db.execute(
+                "CREATE INDEX IF NOT EXISTS idx_metrics_period ON performance_metrics(period_start, period_end)"
             )
 
             await db.commit()
@@ -592,6 +640,145 @@ class Database:
 
         logger.info(f"Daily maintenance complete: {result}")
         return result
+
+    async def save_alert(self, alert_type: str, severity: str, title: str, message: str, data: dict = None) -> int:
+        """Create a new alert"""
+        import json
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                """
+                INSERT INTO alerts (alert_type, severity, title, message, data, created_at, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, 1)
+                """,
+                (alert_type, severity, title, message, json.dumps(data) if data else None, datetime.now())
+            )
+            await db.commit()
+            return cursor.lastrowid
+
+    async def get_active_alerts(self, limit: int = 20) -> List[Dict[str, Any]]:
+        """Get active alerts"""
+        import json
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                """
+                SELECT * FROM alerts
+                WHERE is_active = 1
+                ORDER BY created_at DESC
+                LIMIT ?
+                """,
+                (limit,)
+            ) as cursor:
+                rows = await cursor.fetchall()
+                return [
+                    {
+                        **dict(row),
+                        'data': json.loads(row['data']) if row['data'] else None
+                    }
+                    for row in rows
+                ]
+
+    async def get_all_alerts(self, limit: int = 100, include_inactive: bool = False) -> List[Dict[str, Any]]:
+        """Get all alerts (optionally including inactive)"""
+        import json
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            query = """
+                SELECT * FROM alerts
+                {}
+                ORDER BY created_at DESC
+                LIMIT ?
+            """.format("WHERE is_active = 1" if not include_inactive else "")
+
+            async with db.execute(query, (limit,)) as cursor:
+                rows = await cursor.fetchall()
+                return [
+                    {
+                        **dict(row),
+                        'data': json.loads(row['data']) if row['data'] else None
+                    }
+                    for row in rows
+                ]
+
+    async def acknowledge_alert(self, alert_id: int) -> bool:
+        """Mark alert as acknowledged"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                "UPDATE alerts SET acknowledged_at = ? WHERE id = ?",
+                (datetime.now(), alert_id)
+            )
+            await db.commit()
+            return True
+
+    async def resolve_alert(self, alert_id: int) -> bool:
+        """Mark alert as resolved and inactive"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                "UPDATE alerts SET resolved_at = ?, is_active = 0 WHERE id = ?",
+                (datetime.now(), alert_id)
+            )
+            await db.commit()
+            return True
+
+    async def cleanup_old_alerts(self, days: int = 30) -> int:
+        """Delete resolved alerts older than specified days"""
+        cutoff = datetime.now() - timedelta(days=days)
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                "DELETE FROM alerts WHERE is_active = 0 AND resolved_at < ?",
+                (cutoff,)
+            )
+            await db.commit()
+            deleted = cursor.rowcount
+            logger.info(f"Cleaned up {deleted} old resolved alerts")
+            return deleted
+
+    async def save_performance_metrics(self, metrics: Dict[str, Any]) -> int:
+        """Save performance metrics for a period"""
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                """
+                INSERT OR REPLACE INTO performance_metrics
+                (timestamp, period_start, period_end, cop, duty_cycle, cycles_per_hour,
+                 ground_delta, heating_delta, total_kwh, total_cost, avg_power,
+                 avg_indoor_temp, avg_outdoor_temp, heating_minutes, samples_count)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    metrics.get('timestamp', datetime.now()),
+                    metrics['period_start'],
+                    metrics['period_end'],
+                    metrics.get('cop'),
+                    metrics.get('duty_cycle'),
+                    metrics.get('cycles_per_hour'),
+                    metrics.get('ground_delta'),
+                    metrics.get('heating_delta'),
+                    metrics.get('total_kwh'),
+                    metrics.get('total_cost'),
+                    metrics.get('avg_power'),
+                    metrics.get('avg_indoor_temp'),
+                    metrics.get('avg_outdoor_temp'),
+                    metrics.get('heating_minutes'),
+                    metrics.get('samples_count', 0)
+                )
+            )
+            await db.commit()
+            return cursor.lastrowid
+
+    async def get_performance_metrics(self, start: datetime, end: datetime) -> List[Dict[str, Any]]:
+        """Get performance metrics for a time range"""
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                """
+                SELECT * FROM performance_metrics
+                WHERE period_start >= ? AND period_end <= ?
+                ORDER BY period_start ASC
+                """,
+                (start, end)
+            ) as cursor:
+                rows = await cursor.fetchall()
+                return [dict(row) for row in rows]
 
 
 # Global database instance

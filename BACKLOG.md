@@ -913,14 +913,20 @@ Family AI assistant running alongside ThermIQ on Raspberry Pi.
 **Status:** ✅ COMPLETE  
 **Value Delivered:** Significant UI improvements, energy tracking, real-time analytics
 
-### Sprint 2: Intelligence (Next)
-- [ ] Smart alerts system (7h)
+### Sprint 2: Intelligence (In Progress - April 3, 2026)
+- [x] Smart alerts system (7h → 4h actual)
+  - [x] Database schema (alerts, performance_metrics tables)
+  - [x] Alert evaluation service (5 alert types: efficiency, comfort, price_opportunity, maintenance, system_error)
+  - [x] API endpoints (GET/POST alerts, acknowledge, resolve, config)
+  - [x] Background job scheduler (runs every 15 minutes)
+  - [x] Frontend AlertsPanel component
+  - [x] Integration with DashboardPage
 - [ ] Weather integration (5h)
-- [ ] Database enhancements (2h)
-- [ ] Background jobs (3h)
+- [x] Database enhancements (included in alerts system)
+- [x] Background jobs (included in alerts system)
 
-**Total:** 17 hours  
-**Status:** Ready to start  
+**Total:** 17 hours estimated, ~4 hours actual so far  
+**Status:** 🚧 IN PROGRESS (Alerts complete, Weather remaining)  
 **Value:** Proactive monitoring, better predictions
 
 ### Sprint 3: Polish & Deploy (1 week)

@@ -129,6 +129,34 @@ async def scheduled_data_maintenance():
         logger.error(f"Error in data maintenance: {e}")
 
 
+async def scheduled_alert_evaluation():
+    """Scheduled task to evaluate system conditions and generate alerts"""
+    logger.info("Running scheduled alert evaluation...")
+    try:
+        from app.services.alert_service import AlertService
+        from app.models import AlertConfig
+
+        db = await get_database()
+        alert_service = AlertService(db)
+
+        # Get current config
+        config = get_config()
+        alerts_config = config.config.get('alerts', {})
+        if alerts_config:
+            alert_service.update_config(AlertConfig(**alerts_config))
+
+        # Run evaluation
+        alert_ids = await alert_service.evaluate_all()
+
+        if alert_ids:
+            logger.info(f"Alert evaluation complete: {len(alert_ids)} new alerts created")
+        else:
+            logger.debug("Alert evaluation complete: no new alerts")
+
+    except Exception as e:
+        logger.error(f"Error in alert evaluation: {e}")
+
+
 # Global event loop reference for MQTT callbacks
 _main_loop: Optional[asyncio.AbstractEventLoop] = None
 
@@ -283,6 +311,16 @@ async def lifespan(app: FastAPI):
             id='data_maintenance'
         )
         logger.info("Scheduled daily data maintenance at 01:00")
+
+        # Schedule alert evaluation every 15 minutes
+        alert_interval = config.config.get('alerts', {}).get('evaluation_interval', 900)  # 15 minutes default
+        scheduler.add_job(
+            scheduled_alert_evaluation,
+            'interval',
+            seconds=alert_interval,
+            id='alert_evaluation'
+        )
+        logger.info(f"Scheduled alert evaluation every {alert_interval} seconds")
 
         logger.info("ThermIQ backend started successfully")
 

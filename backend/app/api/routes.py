@@ -15,6 +15,8 @@ from app.models import (
     DailyPriceSummary,
     ElectricityPrice,
     HeatingSchedule,
+    Alert,
+    AlertConfig,
 )
 from app.services.mqtt_manager import get_mqtt_manager
 from app.services.nord_pool_client import get_nordpool_client
@@ -638,4 +640,167 @@ async def manual_override(override: ManualOverride):
         raise
     except Exception as e:
         logger.error(f"Error setting manual override: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/alerts", response_model=List[Alert])
+async def get_alerts(active_only: bool = True, limit: int = 20):
+    """
+    Get system alerts.
+
+    Args:
+        active_only: Return only active alerts (default True)
+        limit: Maximum number of alerts to return
+    """
+    try:
+        db = await get_database()
+
+        if active_only:
+            alerts_data = await db.get_active_alerts(limit=limit)
+        else:
+            alerts_data = await db.get_all_alerts(limit=limit, include_inactive=True)
+
+        # Convert to Alert models
+        alerts = []
+        for data in alerts_data:
+            alerts.append(Alert(
+                id=data['id'],
+                alert_type=data['alert_type'],
+                severity=data['severity'],
+                title=data['title'],
+                message=data['message'],
+                data=data.get('data'),
+                created_at=datetime.fromisoformat(data['created_at']),
+                acknowledged_at=datetime.fromisoformat(data['acknowledged_at']) if data.get('acknowledged_at') else None,
+                resolved_at=datetime.fromisoformat(data['resolved_at']) if data.get('resolved_at') else None,
+                is_active=bool(data['is_active'])
+            ))
+
+        return alerts
+
+    except Exception as e:
+        logger.error(f"Error getting alerts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/alerts/{alert_id}/acknowledge")
+async def acknowledge_alert(alert_id: int):
+    """Acknowledge an alert"""
+    try:
+        db = await get_database()
+        success = await db.acknowledge_alert(alert_id)
+
+        if success:
+            return {"success": True, "message": f"Alert {alert_id} acknowledged"}
+        else:
+            raise HTTPException(status_code=404, detail="Alert not found")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error acknowledging alert: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/alerts/{alert_id}/resolve")
+async def resolve_alert(alert_id: int):
+    """Resolve an alert"""
+    try:
+        db = await get_database()
+        success = await db.resolve_alert(alert_id)
+
+        if success:
+            return {"success": True, "message": f"Alert {alert_id} resolved"}
+        else:
+            raise HTTPException(status_code=404, detail="Alert not found")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error resolving alert: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/alerts/config", response_model=AlertConfig)
+async def get_alert_config():
+    """Get alert system configuration"""
+    try:
+        config = get_config()
+        alerts_config = config.config.get('alerts', {})
+
+        return AlertConfig(
+            enabled=alerts_config.get('enabled', True),
+            efficiency_cop_threshold=alerts_config.get('efficiency_cop_threshold', 2.0),
+            efficiency_check_interval_minutes=alerts_config.get('efficiency_check_interval_minutes', 60),
+            price_opportunity_threshold_percent=alerts_config.get('price_opportunity_threshold_percent', 30),
+            comfort_deviation_threshold=alerts_config.get('comfort_deviation_threshold', 1.0),
+            comfort_duration_minutes=alerts_config.get('comfort_duration_minutes', 30),
+            max_active_alerts=alerts_config.get('max_active_alerts', 20)
+        )
+
+    except Exception as e:
+        logger.error(f"Error getting alert config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/alerts/config")
+async def update_alert_config(alert_config: AlertConfig):
+    """Update alert system configuration"""
+    try:
+        config = get_config()
+
+        # Update config
+        if 'alerts' not in config.config:
+            config.config['alerts'] = {}
+
+        config.config['alerts']['enabled'] = alert_config.enabled
+        config.config['alerts']['efficiency_cop_threshold'] = alert_config.efficiency_cop_threshold
+        config.config['alerts']['efficiency_check_interval_minutes'] = alert_config.efficiency_check_interval_minutes
+        config.config['alerts']['price_opportunity_threshold_percent'] = alert_config.price_opportunity_threshold_percent
+        config.config['alerts']['comfort_deviation_threshold'] = alert_config.comfort_deviation_threshold
+        config.config['alerts']['comfort_duration_minutes'] = alert_config.comfort_duration_minutes
+        config.config['alerts']['max_active_alerts'] = alert_config.max_active_alerts
+
+        config.save()
+
+        return {
+            "success": True,
+            "message": "Alert configuration updated",
+            "config": alert_config
+        }
+
+    except Exception as e:
+        logger.error(f"Error updating alert config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/alerts/evaluate")
+async def evaluate_alerts(background_tasks: BackgroundTasks):
+    """Manually trigger alert evaluation"""
+    try:
+        from app.services.alert_service import AlertService
+
+        async def run_evaluation():
+            db = await get_database()
+            alert_service = AlertService(db)
+
+            # Get current config
+            config = get_config()
+            alerts_config = config.config.get('alerts', {})
+            if alerts_config:
+                alert_service.update_config(AlertConfig(**alerts_config))
+
+            # Run evaluation
+            alert_ids = await alert_service.evaluate_all()
+            logger.info(f"Alert evaluation complete: {len(alert_ids)} new alerts created")
+
+        background_tasks.add_task(run_evaluation)
+
+        return {
+            "success": True,
+            "message": "Alert evaluation triggered"
+        }
+
+    except Exception as e:
+        logger.error(f"Error triggering alert evaluation: {e}")
         raise HTTPException(status_code=500, detail=str(e))

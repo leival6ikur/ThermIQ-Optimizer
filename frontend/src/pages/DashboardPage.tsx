@@ -415,13 +415,21 @@ export const DashboardPage: React.FC = () => {
                 </button>
               </div>
 
-              {/* Settings Button */}
-              <button
-                onClick={() => window.location.href = '/settings'}
-                className="btn-primary text-sm"
-              >
-                Settings
-              </button>
+              {/* Navigation Buttons */}
+              <div className="flex gap-2">
+                <a
+                  href="/insights"
+                  className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 transition-colors"
+                >
+                  📊 Insights
+                </a>
+                <a
+                  href="/settings"
+                  className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  Settings
+                </a>
+              </div>
             </div>
           </div>
         </div>

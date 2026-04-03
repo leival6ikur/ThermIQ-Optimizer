@@ -1,9 +1,10 @@
 import React from 'react';
 import { DashboardPage } from './pages/DashboardPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { InsightsPage } from './pages/InsightsPage';
 
 function App() {
-  const [currentPage, setCurrentPage] = React.useState<'dashboard' | 'settings'>('dashboard');
+  const [currentPage, setCurrentPage] = React.useState<'dashboard' | 'settings' | 'insights'>('dashboard');
 
   // Simple routing based on hash or pathname
   React.useEffect(() => {
@@ -11,6 +12,8 @@ function App() {
       const path = window.location.pathname;
       if (path.includes('settings')) {
         setCurrentPage('settings');
+      } else if (path.includes('insights')) {
+        setCurrentPage('insights');
       } else {
         setCurrentPage('dashboard');
       }
@@ -27,10 +30,16 @@ function App() {
       const target = e.target as HTMLElement;
       const href = target.getAttribute('href') || target.closest('a')?.getAttribute('href');
 
-      if (href === '/' || href === '/settings') {
+      if (href === '/' || href === '/settings' || href === '/insights') {
         e.preventDefault();
         window.history.pushState({}, '', href);
-        setCurrentPage(href === '/settings' ? 'settings' : 'dashboard');
+        if (href === '/settings') {
+          setCurrentPage('settings');
+        } else if (href === '/insights') {
+          setCurrentPage('insights');
+        } else {
+          setCurrentPage('dashboard');
+        }
       }
     };
 
@@ -38,7 +47,9 @@ function App() {
     return () => document.removeEventListener('click', handleClick);
   }, []);
 
-  return currentPage === 'settings' ? <SettingsPage /> : <DashboardPage />;
+  if (currentPage === 'settings') return <SettingsPage />;
+  if (currentPage === 'insights') return <InsightsPage />;
+  return <DashboardPage />;
 }
 
 export default App;

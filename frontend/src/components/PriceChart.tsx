@@ -21,7 +21,7 @@ interface PriceChartProps {
 
 export const PriceChart: React.FC<PriceChartProps> = ({
   prices,
-  currentHour,
+  currentHour: _currentHour,
   vatConfig,
   viewMode = 'day',
   onViewModeChange,
@@ -42,13 +42,11 @@ export const PriceChart: React.FC<PriceChartProps> = ({
     : '';
 
   // Convert prices to ¢/kWh and prepare chart data
-  const now = new Date();
-  const currentTime = now.getTime();
-
   let chartData;
 
   if (viewMode === 'rolling') {
     // Rolling view: center on current hour, show exactly 12 before and 12 after
+    const now = new Date();
     const currentHourStart = new Date(now);
     currentHourStart.setMinutes(0, 0, 0);
     const currentHourTime = currentHourStart.getTime();
@@ -115,6 +113,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
     chartData = Array.from(priceMap.values()).sort((a, b) => a.timestamp - b.timestamp);
 
     // Mark current hour after deduplication - use now.getHours() to ensure we have current time
+    const now = new Date();
     const nowHour = now.getHours();
     chartData.forEach(entry => {
       entry.isCurrent = entry.actualHour === nowHour;

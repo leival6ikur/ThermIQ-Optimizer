@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import {
-  LineChart,
   Line,
   XAxis,
   YAxis,
@@ -75,16 +74,6 @@ export const EnhancedTemperatureChart: React.FC<EnhancedTemperatureChartProps> =
       };
     });
   }, [temperatureData, priceData, targetTemp]);
-
-  // Calculate price zone colors
-  const getPriceZoneColor = (zone: number) => {
-    switch (zone) {
-      case 1: return '#dcfce7'; // green-100
-      case 2: return '#fef3c7'; // yellow-100
-      case 3: return '#fee2e2'; // red-100
-      default: return 'transparent';
-    }
-  };
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload }: any) => {

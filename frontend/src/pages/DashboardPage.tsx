@@ -108,7 +108,7 @@ export const DashboardPage: React.FC = () => {
           const tomorrowUTC = todayUTC + (24 * 60 * 60 * 1000);
 
           // Deduplicate by hour - backend returns duplicates
-          const dedupeByHour = (prices: any[], baseTimestamp: number) => {
+          const dedupeByHour = (prices: any[], baseTimestamp: number): ElectricityPrice[] => {
             const priceMap = new Map<number, number>();
             prices.forEach(p => {
               if (!priceMap.has(p.hour)) {
@@ -118,6 +118,8 @@ export const DashboardPage: React.FC = () => {
             return Array.from(priceMap.entries()).map(([hour, price]) => ({
               timestamp: new Date(baseTimestamp + hour * 60 * 60 * 1000).toISOString(),
               price: price * vatMultiplier,
+              currency: 'EUR',
+              region: 'EE',
             }));
           };
 

@@ -16,9 +16,9 @@ export const useWebSocket = () => {
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
-  const pingIntervalRef = useRef<NodeJS.Timeout>();
-  const errorTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<number | undefined>(undefined);
+  const pingIntervalRef = useRef<number | undefined>(undefined);
+  const errorTimeoutRef = useRef<number | undefined>(undefined);
   const reconnectAttempts = useRef<number>(0);
   const isConnectingRef = useRef<boolean>(false);
   const initialConnectionRef = useRef<boolean>(true);

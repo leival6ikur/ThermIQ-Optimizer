@@ -1,0 +1,64 @@
+# ThermIQ Heat Pump Optimizer Configuration
+
+# MQTT Broker Settings
+mqtt:
+  broker: localhost
+  port: 1883
+  device_id: thermiq_room2lp
+  username: null  # Add authentication post-MVP
+  password: null
+  reconnect_delay: 5
+  keepalive: 60
+
+# Nord Pool Electricity Pricing
+nordpool:
+  region: EE  # Estonia (Tartu region)
+  currency: EUR
+  api_url: https://www.nordpoolgroup.com/api/marketdata/page/10
+  fetch_time: "13:00"  # UTC time when prices are published
+  cache_hours: 48
+  retry_attempts: 3
+
+# Installation Location
+location:
+  address: "Sirkli 6, Lombi küla, Tartu vald, Estonia"
+  latitude: 58.3780  # Tartu region coordinates
+  longitude: 26.7290
+  timezone: "Europe/Tallinn"
+
+# Optimization Settings
+optimization:
+  strategy: balanced  # aggressive | balanced | conservative
+  target_temperature: 21.0
+  temperature_tolerance: 1.0  # Allow ±1°C variation
+  comfort_hours_start: "06:00"
+  comfort_hours_end: "23:00"
+  update_interval: 300  # Recalculate schedule every 5 minutes
+
+# Building Thermal Characteristics
+building:
+  insulation_quality: good  # poor | average | good | excellent
+  thermal_mass: medium  # low | medium | high
+  estimated_heat_loss_per_degree: 0.5  # °C per hour at 10°C outdoor
+  heating_rate: 2.0  # °C per hour when heating
+
+# API Server Settings
+api:
+  host: 0.0.0.0
+  port: 8000
+  cors_origins:
+    - http://localhost:3000
+    - http://localhost:5173
+
+# Database Settings
+database:
+  path: ./data/thermiq.db
+  backup_enabled: true
+  backup_interval_hours: 24
+
+# Logging Configuration
+logging:
+  level: INFO  # DEBUG | INFO | WARNING | ERROR
+  file: ./data/logs/thermiq.log
+  rotation: daily
+  retention_days: 30

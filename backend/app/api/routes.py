@@ -1,0 +1,641 @@
+"""
+API Routes for ThermIQ Backend
+"""
+import logging
+from datetime import datetime, timedelta, date
+from typing import List, Optional
+
+from fastapi import APIRouter, HTTPException, BackgroundTasks
+from pydantic import BaseModel
+
+from app.models import (
+    SystemStatus,
+    ManualOverride,
+    OptimizationConfig,
+    DailyPriceSummary,
+    ElectricityPrice,
+    HeatingSchedule,
+)
+from app.services.mqtt_manager import get_mqtt_manager
+from app.services.nord_pool_client import get_nordpool_client
+from app.services.optimization_engine import get_optimization_engine
+from app.database import get_database
+from app.config import get_config
+
+
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/api", tags=["api"])
+
+
+# Pydantic models for VAT configuration
+class VATConfig(BaseModel):
+    """VAT configuration for cost display"""
+    vat_enabled: bool
+    vat_rate: float  # percentage (0-100)
+
+
+@router.get("/status", response_model=SystemStatus)
+async def get_status():
+    """Get current system status"""
+    try:
+        mqtt = get_mqtt_manager()
+        db = await get_database()
+
+        # Get latest readings
+        latest_temp = mqtt.get_latest_temperature()
+        latest_status = mqtt.get_latest_status()
+
+        # Get last Nord Pool fetch time
+        today = date.today()
+        prices_today = await db.get_electricity_prices(
+            datetime.combine(today, datetime.min.time()),
+            datetime.combine(today + timedelta(days=1), datetime.min.time())
+        )
+
+        nordpool_last_fetch = None
+        if prices_today:
+            # Get creation time of most recent price
+            nordpool_last_fetch = datetime.now()  # Placeholder
+
+        return SystemStatus(
+            mqtt_connected=mqtt.is_connected(),
+            last_device_update=mqtt.last_message_time,
+            nordpool_last_fetch=nordpool_last_fetch,
+            current_temperature=latest_temp,
+            heat_pump_status=latest_status,
+            optimization_active=True,
+        )
+
+    except Exception as e:
+        logger.error(f"Error getting status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/prices", response_model=DailyPriceSummary)
+async def get_prices(target_date: Optional[str] = None):
+    """
+    Get electricity prices for specified date.
+
+    Args:
+        target_date: Date in format YYYY-MM-DD (defaults to today)
+    """
+    try:
+        db = await get_database()
+
+        if target_date:
+            try:
+                target = datetime.strptime(target_date, '%Y-%m-%d').date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        else:
+            target = date.today()
+
+        # Get prices from database
+        start = datetime.combine(target, datetime.min.time())
+        end = start + timedelta(days=1)
+
+        prices = await db.get_electricity_prices(start, end)
+
+        if not prices:
+            raise HTTPException(status_code=404, detail=f"No prices found for {target}")
+
+        # Deduplicate by hour (in case DB has duplicates)
+        seen_hours = {}
+        for p in prices:
+            hour = p.timestamp.hour
+            if hour not in seen_hours:
+                seen_hours[hour] = p
+        prices = list(seen_hours.values())
+
+        # Apply VAT for display if enabled
+        from app.config import get_config as get_cfg_price
+        config = get_cfg_price()
+        display_prices = []
+        for p in prices:
+            display_price = ElectricityPrice(
+                timestamp=p.timestamp,
+                price=config.apply_vat_to_price(p.price),
+                currency=p.currency,
+                region=p.region
+            )
+            display_prices.append(display_price)
+
+        # Calculate summary
+        price_values = [p.price for p in display_prices]
+        return DailyPriceSummary(
+            date=target.isoformat(),
+            min_price=min(price_values),
+            max_price=max(price_values),
+            average_price=sum(price_values) / len(price_values),
+            prices=display_prices,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting prices: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/prices/today-tomorrow")
+async def get_today_tomorrow_prices():
+    """Get prices for today and tomorrow (if available)"""
+    try:
+        db = await get_database()
+
+        today = date.today()
+        tomorrow = today + timedelta(days=1)
+
+        # Get today's prices
+        today_start = datetime.combine(today, datetime.min.time())
+        today_end = today_start + timedelta(days=1)
+        prices_today = await db.get_electricity_prices(today_start, today_end)
+
+        # Get tomorrow's prices
+        tomorrow_start = datetime.combine(tomorrow, datetime.min.time())
+        tomorrow_end = tomorrow_start + timedelta(days=1)
+        prices_tomorrow = await db.get_electricity_prices(tomorrow_start, tomorrow_end)
+
+        # Deduplicate by hour (in case DB has duplicates)
+        def dedupe_by_hour(prices):
+            seen = {}
+            for p in prices:
+                hour = p.timestamp.hour
+                if hour not in seen:
+                    seen[hour] = p
+            return list(seen.values())
+
+        prices_today_deduped = dedupe_by_hour(prices_today)
+        prices_tomorrow_deduped = dedupe_by_hour(prices_tomorrow)
+
+        return {
+            "today": {
+                "date": today.isoformat(),
+                "prices": [{"hour": p.timestamp.hour, "price": p.price} for p in prices_today_deduped]
+            },
+            "tomorrow": {
+                "date": tomorrow.isoformat(),
+                "prices": [{"hour": p.timestamp.hour, "price": p.price} for p in prices_tomorrow_deduped]
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting today/tomorrow prices: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/schedule", response_model=List[HeatingSchedule])
+async def get_schedule(target_date: Optional[str] = None):
+    """
+    Get heating schedule for specified date.
+
+    Args:
+        target_date: Date in format YYYY-MM-DD (defaults to today)
+    """
+    try:
+        db = await get_database()
+
+        if target_date:
+            try:
+                target = datetime.strptime(target_date, '%Y-%m-%d').date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        else:
+            target = date.today()
+
+        schedule = await db.get_heating_schedule(target.isoformat())
+
+        if not schedule:
+            raise HTTPException(status_code=404, detail=f"No schedule found for {target}")
+
+        return schedule
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting schedule: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/schedule/past")
+async def get_past_schedule():
+    """
+    Get past 24h schedule with actual heating status.
+
+    Returns schedule for the past 24 hours showing:
+    - Planned heating (should_heat from schedule)
+    - Actual heating (was pump actually running)
+    - Prices and costs
+    """
+    try:
+        db = await get_database()
+        from app.config import get_config as get_cfg_past
+        config = get_cfg_past()
+        now = datetime.now()
+        past_24h = now - timedelta(hours=24)
+
+        # Get historical heating status
+        status_history = await db.get_heat_pump_status_history(past_24h, now)
+
+        # Build hourly aggregation
+        result = []
+        for i in range(24):
+            hour_start = past_24h + timedelta(hours=i)
+            hour_end = hour_start + timedelta(hours=1)
+            hour_num = hour_start.hour
+            hour_date = hour_start.date()
+
+            # Get schedule for this hour
+            schedule_data = await db.get_heating_schedule(hour_date.isoformat())
+            schedule_item = next((s for s in schedule_data if s.hour == hour_num), None) if schedule_data else None
+
+            # Get prices for this hour
+            prices = await db.get_electricity_prices(hour_start, hour_end)
+            price = prices[0].price if prices else 0
+
+            # Determine if pump was actually heating during this hour
+            hour_statuses = [s for s in status_history if hour_start <= datetime.fromisoformat(s['timestamp']) < hour_end]
+            was_heating = any(s['heating'] for s in hour_statuses) if hour_statuses else False
+
+            # Calculate heating minutes and average power during this hour
+            heating_statuses = [s for s in hour_statuses if s['heating']]
+            heating_minutes = len(heating_statuses)  # Each status = 1 minute
+            avg_power = sum(s.get('power', 0) for s in heating_statuses) / len(heating_statuses) if heating_statuses else 0
+
+            # Apply VAT for display
+            display_price = config.apply_vat_to_price(price)
+            estimated_cost = schedule_item.estimated_cost if schedule_item else price * avg_power / 1000
+            display_cost = config.apply_vat_to_price(estimated_cost)
+
+            result.append({
+                "timestamp": hour_start.isoformat(),
+                "hour": hour_num,
+                "date": hour_date.isoformat(),
+                "should_heat": schedule_item.should_heat if schedule_item else None,
+                "was_heating": was_heating,
+                "heating_minutes": heating_minutes,
+                "price": display_price,
+                "estimated_cost": display_cost,
+                "avg_power": round(avg_power, 1) if avg_power else None,
+            })
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error getting past schedule: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/override")
+async def manual_override(override: ManualOverride):
+    """
+    Manually override temperature setpoint.
+
+    Args:
+        override: Temperature and optional duration
+    """
+    try:
+        mqtt = get_mqtt_manager()
+
+        if not mqtt.is_connected():
+            raise HTTPException(status_code=503, detail="MQTT not connected")
+
+        # Publish setpoint command
+        success = mqtt.publish_setpoint(override.target_temperature)
+
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to publish setpoint")
+
+        return {
+            "success": True,
+            "message": f"Setpoint changed to {override.target_temperature}°C",
+            "duration_minutes": override.duration_minutes
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error processing override: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/config", response_model=OptimizationConfig)
+async def get_optimization_config():
+    """Get current optimization configuration"""
+    try:
+        engine = get_optimization_engine()
+        config = engine.get_current_config()
+
+        return OptimizationConfig(**config)
+
+    except Exception as e:
+        logger.error(f"Error getting config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/config/vat", response_model=VATConfig)
+async def get_vat_config():
+    """Get current VAT configuration"""
+    try:
+        config = get_config()
+        costs = config.costs
+
+        return VATConfig(
+            vat_enabled=costs.get('vat_enabled', False),
+            vat_rate=costs.get('vat_rate', 0.0)
+        )
+
+    except Exception as e:
+        logger.error(f"Error getting VAT config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/config/vat")
+async def update_vat_config(vat_config: VATConfig):
+    """Update VAT configuration"""
+    try:
+        # Validate VAT rate
+        if vat_config.vat_rate < 0 or vat_config.vat_rate > 100:
+            raise HTTPException(status_code=400, detail="VAT rate must be between 0 and 100")
+
+        config = get_config()
+        config.set('costs.vat_enabled', vat_config.vat_enabled)
+        config.set('costs.vat_rate', vat_config.vat_rate)
+        config.save()
+
+        return {
+            "success": True,
+            "message": "VAT configuration updated",
+            "vat_config": {
+                "vat_enabled": vat_config.vat_enabled,
+                "vat_rate": vat_config.vat_rate
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating VAT config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/prices/refresh")
+async def refresh_prices(background_tasks: BackgroundTasks):
+    """Manually trigger price refresh"""
+    try:
+        background_tasks.add_task(fetch_and_store_prices)
+
+        return {
+            "success": True,
+            "message": "Price refresh triggered"
+        }
+
+    except Exception as e:
+        logger.error(f"Error triggering price refresh: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/temperatures/history")
+async def get_temperature_history(hours: int = 24):
+    """
+    Get temperature history for specified number of hours.
+
+    Args:
+        hours: Number of hours to fetch (default 24, max 168)
+    """
+    try:
+        if hours > 168:
+            raise HTTPException(status_code=400, detail="Maximum 168 hours (7 days)")
+
+        db = await get_database()
+        since = datetime.now() - timedelta(hours=hours)
+
+        temperatures = await db.get_temperatures_since(since)
+
+        return {
+            "since": since.isoformat(),
+            "count": len(temperatures),
+            "temperatures": temperatures
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting temperature history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/history/combined")
+async def get_combined_history(hours: int = 24):
+    """
+    Get combined temperature and price history for charting.
+
+    Returns temperature readings and electricity prices for the specified time period,
+    suitable for displaying on a dual-axis chart.
+
+    Args:
+        hours: Number of hours to fetch (default 24, max 168)
+    """
+    try:
+        if hours > 168:
+            raise HTTPException(status_code=400, detail="Maximum 168 hours (7 days)")
+
+        db = await get_database()
+        from app.config import get_config as get_cfg_hist
+        config = get_cfg_hist()
+        now = datetime.now()
+        since = now - timedelta(hours=hours)
+
+        # Get temperature history
+        temperatures = await db.get_temperatures_since(since)
+
+        # Get electricity prices for the same period
+        prices = await db.get_electricity_prices(since, now)
+
+        # Apply VAT to prices for display
+        display_prices = []
+        for p in prices:
+            display_price = ElectricityPrice(
+                timestamp=p.timestamp,
+                price=config.apply_vat_to_price(p.price),
+                currency=p.currency,
+                region=p.region
+            )
+            display_prices.append(display_price)
+
+        # Get heating status history
+        status_history = await db.get_heat_pump_status_history(since, now)
+
+        return {
+            "since": since.isoformat(),
+            "until": now.isoformat(),
+            "temperatures": temperatures,
+            "prices": display_prices,
+            "heating_status": status_history,
+            "metadata": {
+                "temperature_count": len(temperatures),
+                "price_count": len(display_prices),
+                "status_count": len(status_history),
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting combined history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/maintenance/run")
+async def run_maintenance_now():
+    """
+    Manually trigger data maintenance (aggregation and cleanup).
+    Useful for testing or manual administration.
+    """
+    try:
+        db = await get_database()
+        result = await db.run_daily_maintenance()
+        return {
+            "success": True,
+            "message": "Data maintenance completed successfully",
+            "details": result
+        }
+    except Exception as e:
+        logger.error(f"Error running maintenance: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def fetch_and_store_prices():
+    """Background task to fetch and store prices"""
+    try:
+        logger.info("Fetching Nord Pool prices...")
+
+        client = get_nordpool_client()
+        result = await client.fetch_today_and_tomorrow()
+
+        db = await get_database()
+
+        # Store today's prices
+        if result['today']:
+            await db.save_electricity_prices(result['today'])
+            logger.info(f"Stored {len(result['today'])} prices for today")
+
+            # Calculate and store schedule
+            engine = get_optimization_engine()
+            mqtt = get_mqtt_manager()
+            current_temp_reading = mqtt.get_latest_temperature()
+            current_temp = current_temp_reading.indoor if current_temp_reading else None
+
+            schedule = engine.calculate_schedule(result['today'], current_temp)
+            if schedule:
+                await db.save_heating_schedule(date.today().isoformat(), schedule)
+                logger.info(f"Stored heating schedule for today")
+
+        # Store tomorrow's prices
+        if result['tomorrow']:
+            await db.save_electricity_prices(result['tomorrow'])
+            logger.info(f"Stored {len(result['tomorrow'])} prices for tomorrow")
+
+            # Calculate tomorrow's schedule
+            engine = get_optimization_engine()
+            schedule = engine.calculate_schedule(result['tomorrow'], None)
+            if schedule:
+                tomorrow = date.today() + timedelta(days=1)
+                await db.save_heating_schedule(tomorrow.isoformat(), schedule)
+                logger.info(f"Stored heating schedule for tomorrow")
+
+    except Exception as e:
+        logger.error(f"Error in fetch_and_store_prices: {e}")
+
+
+@router.put("/config")
+async def update_config(config_update: dict):
+    """Update configuration"""
+    try:
+        config = get_config()
+
+        # Update optimization settings
+        if 'optimization' in config_update:
+            opt = config_update['optimization']
+            if 'strategy' in opt:
+                config.optimization['strategy'] = opt['strategy']
+            if 'target_temperature' in opt:
+                config.optimization['target_temperature'] = opt['target_temperature']
+            if 'temperature_tolerance' in opt:
+                config.optimization['temperature_tolerance'] = opt['temperature_tolerance']
+            if 'comfort_hours_start' in opt:
+                config.optimization['comfort_hours_start'] = opt['comfort_hours_start']
+            if 'comfort_hours_end' in opt:
+                config.optimization['comfort_hours_end'] = opt['comfort_hours_end']
+
+        # Update heat curve
+        if 'heat_curve' in config_update:
+            config.optimization['heat_curve'] = config_update['heat_curve']
+
+        # Update building settings
+        if 'building' in config_update:
+            building = config_update['building']
+            if 'insulation_quality' in building:
+                config.building['insulation_quality'] = building['insulation_quality']
+
+        # Update Nord Pool settings
+        if 'nordpool' in config_update:
+            np = config_update['nordpool']
+            if 'region' in np:
+                config.nordpool['region'] = np['region']
+            if 'currency' in np:
+                config.nordpool['currency'] = np['currency']
+
+        # Save configuration
+        config.save()
+
+        # Reinitialize optimization engine with new settings
+        from app.services.optimization_engine import get_optimization_engine
+        engine = get_optimization_engine()
+        engine.strategy = config.optimization['strategy']
+        engine.target_temp = config.optimization['target_temperature']
+        engine.comfort_start = config.optimization['comfort_hours_start']
+        engine.comfort_end = config.optimization['comfort_hours_end']
+
+        logger.info(f"Configuration updated: strategy={config.optimization['strategy']}, "
+                   f"target={config.optimization['target_temperature']}°C")
+
+        return {"status": "success", "message": "Configuration updated successfully"}
+
+    except Exception as e:
+        logger.error(f"Error updating config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/override")
+async def manual_override(override: ManualOverride):
+    """Set manual temperature override"""
+    try:
+        mqtt = get_mqtt_manager()
+
+        # Publish new setpoint to MQTT
+        success = mqtt.publish_setpoint(override.target_temperature)
+
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to send command to heat pump")
+
+        # Store override in database with expiration time
+        expires_at = None
+        if override.duration_minutes:
+            from datetime import datetime, timedelta
+            expires_at = datetime.now() + timedelta(minutes=override.duration_minutes)
+            logger.info(f"Manual override set: {override.target_temperature}°C for {override.duration_minutes} minutes (expires {expires_at})")
+        else:
+            logger.info(f"Manual override set: {override.target_temperature}°C (no expiration)")
+
+        return {
+            "status": "success",
+            "message": f"Temperature set to {override.target_temperature}°C",
+            "expires_at": expires_at.isoformat() if expires_at else None
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error setting manual override: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

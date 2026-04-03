@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
-import type { SystemStatus, TemperatureReading } from '../types/index.js';
+import { EnhancedTemperatureChart } from '../components/EnhancedTemperatureChart';
+import { EnergyDashboard } from '../components/EnergyDashboard';
+import type { SystemStatus, TemperatureReading, ElectricityPrice } from '../types/index.js';
 
 export const InsightsPage: React.FC = () => {
   const { latestTemperature, latestStatus } = useWebSocket();
   const [status, setStatus] = useState<SystemStatus | null>(null);
   const [temperatureHistory, setTemperatureHistory] = useState<TemperatureReading[]>([]);
+  const [priceData, setPriceData] = useState<ElectricityPrice[]>([]);
   const [powerHistory, setPowerHistory] = useState<Array<{ timestamp: string; power: number; heating: boolean }>>([]);
   const [loading, setLoading] = useState(true);
 
@@ -15,9 +18,10 @@ export const InsightsPage: React.FC = () => {
       try {
         setLoading(true);
 
-        const [statusRes, historyRes] = await Promise.all([
+        const [statusRes, historyRes, pricesRes] = await Promise.all([
           fetch('http://localhost:8000/api/status'),
           fetch('http://localhost:8000/api/temperatures/history?hours=24'),
+          fetch('http://localhost:8000/api/prices'),
         ]);
 
         if (statusRes.ok) {
@@ -44,6 +48,13 @@ export const InsightsPage: React.FC = () => {
           const historyData = await historyRes.json();
           if (historyData.temperatures && historyData.temperatures.length > 0) {
             setTemperatureHistory(historyData.temperatures);
+          }
+        }
+
+        if (pricesRes.ok) {
+          const pricesData = await pricesRes.json();
+          if (pricesData.prices) {
+            setPriceData(pricesData.prices);
           }
         }
       } catch (err) {
@@ -294,38 +305,33 @@ export const InsightsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Coming Soon Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Enhanced Temperature Chart Placeholder */}
+        {/* Enhanced Temperature Chart */}
+        <div className="mb-8">
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Enhanced Temperature Analysis
+              📊 Enhanced Temperature Analysis
             </h3>
-            <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg border-2 border-dashed">
-              <div className="text-center">
-                <div className="text-4xl mb-2">📊</div>
-                <div className="font-semibold text-gray-900">Coming Soon</div>
-                <div className="text-sm text-gray-600 mt-1">
-                  Temperature chart with price zones & comfort bands
-                </div>
-              </div>
-            </div>
+            <EnhancedTemperatureChart
+              temperatureData={temperatureHistory}
+              priceData={priceData}
+              targetTemp={status?.target_temp || 21}
+              showPriceZones={true}
+              showHeatingPeriods={true}
+            />
           </div>
+        </div>
 
-          {/* Energy Dashboard Placeholder */}
+        {/* Energy Dashboard */}
+        <div className="mb-8">
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Energy Consumption
+              ⚡ Energy Consumption & Cost Analysis
             </h3>
-            <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg border-2 border-dashed">
-              <div className="text-center">
-                <div className="text-4xl mb-2">⚡</div>
-                <div className="font-semibold text-gray-900">Coming Soon</div>
-                <div className="text-sm text-gray-600 mt-1">
-                  Power consumption tracking & cost analysis
-                </div>
-              </div>
-            </div>
+            <EnergyDashboard
+              powerHistory={powerHistory}
+              priceData={priceData}
+              vatRate={24}
+            />
           </div>
         </div>
 

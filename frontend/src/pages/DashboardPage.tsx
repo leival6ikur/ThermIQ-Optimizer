@@ -5,8 +5,8 @@ import { PriceChart } from '../components/PriceChart';
 import { ScheduleTimeline } from '../components/ScheduleTimeline';
 import { ErrorNotification } from '../components/ErrorNotification';
 import { HistoryChart } from '../components/HistoryChart';
-import { AlertsPanel } from '../components/AlertsPanel';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { NotificationDropdown } from '../components/NotificationDropdown';
 import { useWebSocket } from '../hooks/useWebSocket';
 import type {
   SystemStatus,
@@ -421,6 +421,7 @@ export const DashboardPage: React.FC = () => {
 
               {/* Navigation Buttons */}
               <div className="flex gap-2">
+                <NotificationDropdown />
                 <ThemeToggle />
                 <a
                   href="/insights"
@@ -443,14 +444,6 @@ export const DashboardPage: React.FC = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Error, Warning, and Info Notifications */}
         <ErrorNotification errors={errors} warnings={warnings} infos={infos} />
-
-        {/* Smart Alerts Panel */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">System Alerts</h2>
-          </div>
-          <AlertsPanel maxAlerts={5} showAcknowledged={false} />
-        </div>
 
         {/* Status Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">

@@ -3,7 +3,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import type { SystemStatus, TemperatureReading } from '../types/index.js';
 
 export const InsightsPage: React.FC = () => {
-  const { isConnected: wsConnected, latestTemperature, latestStatus } = useWebSocket();
+  const { latestTemperature, latestStatus } = useWebSocket();
   const [status, setStatus] = useState<SystemStatus | null>(null);
   const [temperatureHistory, setTemperatureHistory] = useState<TemperatureReading[]>([]);
   const [powerHistory, setPowerHistory] = useState<Array<{ timestamp: string; power: number; heating: boolean }>>([]);
@@ -131,7 +131,7 @@ export const InsightsPage: React.FC = () => {
     );
 
     // Count heating minutes (assuming 60-second intervals)
-    const heatingMinutes = recentHistory.filter((_, index) => {
+    const heatingMinutes = recentHistory.filter(() => {
       // Check if heating was active (simplified - would need actual heating status per reading)
       return status.heating_active;
     }).length;
@@ -346,7 +346,7 @@ export const InsightsPage: React.FC = () => {
                 </p>
                 <p>
                   <strong>Cycles per Hour:</strong> Number of heating start/stop cycles.
-                  Optimal: 1-3 per hour. High cycling (>4) reduces efficiency and increases wear.
+                  Optimal: 1-3 per hour. High cycling (&gt;4) reduces efficiency and increases wear.
                 </p>
                 <p>
                   <strong>Ground ΔT:</strong> Temperature difference between brine in and out from ground collector.

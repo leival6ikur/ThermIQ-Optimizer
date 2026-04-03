@@ -14,11 +14,11 @@ interface StatusCardProps {
 }
 
 const colorClasses = {
-  primary: 'text-primary border-primary/20 bg-primary/5',
-  success: 'text-green-600 border-green-200 bg-green-50',
-  warning: 'text-amber-600 border-amber-200 bg-amber-50',
-  danger: 'text-red-600 border-red-200 bg-red-50',
-  neutral: 'text-gray-600 border-gray-200 bg-gray-50',
+  primary: 'text-primary border-primary/20 bg-primary/5 dark:text-primary-dark dark:border-primary/30 dark:bg-primary/10',
+  success: 'text-green-600 border-green-200 bg-green-50 dark:text-green-400 dark:border-green-800 dark:bg-green-900/20',
+  warning: 'text-amber-600 border-amber-200 bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:bg-amber-900/20',
+  danger: 'text-red-600 border-red-200 bg-red-50 dark:text-red-400 dark:border-red-800 dark:bg-red-900/20',
+  neutral: 'text-gray-600 border-gray-200 bg-gray-50 dark:text-gray-400 dark:border-gray-700 dark:bg-gray-800',
 };
 
 export const StatusCard: React.FC<StatusCardProps> = ({
@@ -36,13 +36,13 @@ export const StatusCard: React.FC<StatusCardProps> = ({
     <div className={`card border-2 ${colorClasses[color]}`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{title}</p>
           <div className="flex items-baseline gap-2">
             {icon && <span className="text-2xl">{icon}</span>}
-            <p className="text-3xl font-bold">{value}</p>
+            <p className="text-3xl font-bold dark:text-gray-100">{value}</p>
           </div>
           {subtitle && (
-            <p className="text-sm text-gray-500 mt-2">{subtitle}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{subtitle}</p>
           )}
         </div>
         {trend && trendValue && (

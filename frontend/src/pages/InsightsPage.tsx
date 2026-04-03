@@ -3,6 +3,8 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { EnhancedTemperatureChart } from '../components/EnhancedTemperatureChart';
 import { EnergyDashboard } from '../components/EnergyDashboard';
 import { WeatherWidget } from '../components/WeatherWidget';
+import { HotWaterWidget } from '../components/HotWaterWidget';
+import { ThemeToggle } from '../components/ThemeToggle';
 import type { SystemStatus, TemperatureReading, ElectricityPrice } from '../types/index.js';
 
 export const InsightsPage: React.FC = () => {
@@ -186,21 +188,24 @@ export const InsightsPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">System Insights</h1>
-              <p className="text-sm text-gray-600">Advanced analytics and performance metrics</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">System Insights</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Advanced analytics and performance metrics</p>
             </div>
-            <a
-              href="/"
-              className="text-sm text-primary hover:text-primary/80 font-medium"
-            >
-              ← Back to Dashboard
-            </a>
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <a
+                href="/"
+                className="text-sm text-primary hover:text-primary/80 dark:text-primary-dark font-medium"
+              >
+                ← Back to Dashboard
+              </a>
+            </div>
           </div>
         </div>
       </header>
@@ -208,16 +213,16 @@ export const InsightsPage: React.FC = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* System Performance Card */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">System Performance</h2>
-          <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">System Performance</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
               {/* COP */}
               <div>
-                <div className="text-sm text-gray-600 mb-1">COP (Efficiency)</div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">COP (Efficiency)</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {metrics.cop !== null ? metrics.cop.toFixed(1) : '--'}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {metrics.cop !== null && metrics.cop > 3.0 ? '✅ Good' :
                    metrics.cop !== null && metrics.cop > 2.0 ? '⚠️ Fair' :
                    metrics.cop !== null ? '🚨 Low' : 'N/A'}
@@ -226,11 +231,11 @@ export const InsightsPage: React.FC = () => {
 
               {/* Duty Cycle */}
               <div>
-                <div className="text-sm text-gray-600 mb-1">Duty Cycle</div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Duty Cycle</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {metrics.dutyCycle !== null ? `${metrics.dutyCycle.toFixed(0)}%` : '--'}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {metrics.dutyCycle !== null && metrics.dutyCycle >= 30 && metrics.dutyCycle <= 60
                     ? '✅ Optimal'
                     : metrics.dutyCycle !== null ? '⚠️ Review' : 'N/A'}
@@ -239,11 +244,11 @@ export const InsightsPage: React.FC = () => {
 
               {/* Cycling Frequency */}
               <div>
-                <div className="text-sm text-gray-600 mb-1">Cycles/Hour</div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Cycles/Hour</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {metrics.cyclesPerHour !== null ? metrics.cyclesPerHour.toFixed(1) : '--'}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {metrics.cyclesPerHour !== null && metrics.cyclesPerHour >= 1 && metrics.cyclesPerHour <= 3
                     ? '✅ Good'
                     : metrics.cyclesPerHour !== null ? '⚠️ High' : 'N/A'}
@@ -252,11 +257,11 @@ export const InsightsPage: React.FC = () => {
 
               {/* Ground Delta */}
               <div>
-                <div className="text-sm text-gray-600 mb-1">Ground ΔT</div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Ground ΔT</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {metrics.groundDelta !== null ? `${metrics.groundDelta.toFixed(1)}°C` : '--'}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {metrics.groundDelta !== null && metrics.groundDelta >= 2.5
                     ? '✅ Good'
                     : metrics.groundDelta !== null ? '⚠️ Low' : 'N/A'}
@@ -265,11 +270,11 @@ export const InsightsPage: React.FC = () => {
 
               {/* Heating Delta */}
               <div>
-                <div className="text-sm text-gray-600 mb-1">Heating ΔT</div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Heating ΔT</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {metrics.heatingDelta !== null ? `${metrics.heatingDelta.toFixed(1)}°C` : '--'}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {metrics.heatingDelta !== null && metrics.heatingDelta >= 5
                     ? '✅ Good'
                     : metrics.heatingDelta !== null ? '⚠️ Low' : 'N/A'}
@@ -278,22 +283,22 @@ export const InsightsPage: React.FC = () => {
 
               {/* Average Power */}
               <div>
-                <div className="text-sm text-gray-600 mb-1">Avg Power</div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Avg Power</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {metrics.avgPower !== null ? `${(metrics.avgPower / 1000).toFixed(1)}kW` : '--'}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Last hour
                 </div>
               </div>
             </div>
 
             {/* Status Indicator */}
-            <div className="mt-6 pt-6 border-t">
+            <div className="mt-6 pt-6 border-t dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-semibold text-gray-900">Overall Status</div>
-                  <div className="text-sm text-gray-600">System performance assessment</div>
+                  <div className="font-semibold text-gray-900 dark:text-gray-100">Overall Status</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">System performance assessment</div>
                 </div>
                 <div className="text-2xl">
                   {metrics.cop !== null && metrics.cop > 2.5 &&
@@ -308,8 +313,8 @@ export const InsightsPage: React.FC = () => {
 
         {/* Enhanced Temperature Chart */}
         <div className="mb-8">
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               📊 Enhanced Temperature Analysis
             </h3>
             <EnhancedTemperatureChart
@@ -324,8 +329,8 @@ export const InsightsPage: React.FC = () => {
 
         {/* Energy Dashboard */}
         <div className="mb-8">
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               ⚡ Energy Consumption & Cost Analysis
             </h3>
             <EnergyDashboard
@@ -338,8 +343,14 @@ export const InsightsPage: React.FC = () => {
 
         {/* Weather Widget */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Weather Forecast & Heating Load</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Weather Forecast & Heating Load</h2>
           <WeatherWidget showForecast={true} showHeatingLoad={true} />
+        </div>
+
+        {/* Hot Water Intelligence */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Hot Water Intelligence</h2>
+          <HotWaterWidget currentTemp={status?.hot_water_temp} showStats={true} showSchedule={true} />
         </div>
 
         {/* Info Box */}

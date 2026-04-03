@@ -22,20 +22,20 @@ export const ErrorNotification: React.FC<ErrorNotificationProps> = ({
       {errors.map((error, index) => (
         <div
           key={`error-${index}`}
-          className="bg-red-50 border-l-4 border-red-500 p-4 rounded shadow-sm"
+          className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 dark:border-red-700 p-4 rounded shadow-sm"
         >
           <div className="flex items-start">
             <div className="flex-shrink-0">
               <span className="text-2xl">🚨</span>
             </div>
             <div className="ml-3 flex-1">
-              <h3 className="text-sm font-semibold text-red-800">Error</h3>
-              <p className="text-sm text-red-700 mt-1">{error}</p>
+              <h3 className="text-sm font-semibold text-red-800 dark:text-red-300">Error</h3>
+              <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
             </div>
             {onDismiss && (
               <button
                 onClick={onDismiss}
-                className="ml-3 text-red-500 hover:text-red-700"
+                className="ml-3 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
               >
                 ✕
               </button>
@@ -47,20 +47,20 @@ export const ErrorNotification: React.FC<ErrorNotificationProps> = ({
       {warnings.map((warning, index) => (
         <div
           key={`warning-${index}`}
-          className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded shadow-sm"
+          className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 dark:border-amber-700 p-4 rounded shadow-sm"
         >
           <div className="flex items-start">
             <div className="flex-shrink-0">
               <span className="text-2xl">⚠️</span>
             </div>
             <div className="ml-3 flex-1">
-              <h3 className="text-sm font-semibold text-amber-800">Warning</h3>
-              <p className="text-sm text-amber-700 mt-1">{warning}</p>
+              <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-300">Warning</h3>
+              <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">{warning}</p>
             </div>
             {onDismiss && (
               <button
                 onClick={onDismiss}
-                className="ml-3 text-amber-500 hover:text-amber-700"
+                className="ml-3 text-amber-500 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
               >
                 ✕
               </button>
@@ -72,20 +72,20 @@ export const ErrorNotification: React.FC<ErrorNotificationProps> = ({
       {infos.map((info, index) => (
         <div
           key={`info-${index}`}
-          className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded shadow-sm"
+          className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-700 p-4 rounded shadow-sm"
         >
           <div className="flex items-start">
             <div className="flex-shrink-0">
               <span className="text-2xl">💡</span>
             </div>
             <div className="ml-3 flex-1">
-              <h3 className="text-sm font-semibold text-blue-800">Info</h3>
-              <p className="text-sm text-blue-700 mt-1">{info}</p>
+              <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-300">Info</h3>
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">{info}</p>
             </div>
             {onDismiss && (
               <button
                 onClick={onDismiss}
-                className="ml-3 text-blue-500 hover:text-blue-700"
+                className="ml-3 text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
               >
                 ✕
               </button>

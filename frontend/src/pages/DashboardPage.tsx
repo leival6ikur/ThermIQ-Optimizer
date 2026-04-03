@@ -6,6 +6,7 @@ import { ScheduleTimeline } from '../components/ScheduleTimeline';
 import { ErrorNotification } from '../components/ErrorNotification';
 import { HistoryChart } from '../components/HistoryChart';
 import { AlertsPanel } from '../components/AlertsPanel';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { useWebSocket } from '../hooks/useWebSocket';
 import type {
   SystemStatus,
@@ -359,18 +360,18 @@ export const DashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">ThermIQ Optimizer</h1>
-              <p className="text-sm text-gray-600">Sirkli 6, Lombi küla, Tartu vald</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">ThermIQ Optimizer</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Sirkli 6, Lombi küla, Tartu vald</p>
             </div>
             <div className="flex items-center gap-4">
               {/* System Status */}
-              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200">
+              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-600">MQTT:</span>
                   <span className={`flex items-center gap-1 text-xs font-medium ${
@@ -404,8 +405,8 @@ export const DashboardPage: React.FC = () => {
               </div>
 
               {/* Mode Toggle */}
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-gray-200">
-                <span className="text-sm font-medium text-gray-700">Mode:</span>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mode:</span>
                 <button
                   onClick={toggleManualOverride}
                   className={`px-3 py-1 rounded text-sm font-semibold transition-colors ${
@@ -420,6 +421,7 @@ export const DashboardPage: React.FC = () => {
 
               {/* Navigation Buttons */}
               <div className="flex gap-2">
+                <ThemeToggle />
                 <a
                   href="/insights"
                   className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 transition-colors"

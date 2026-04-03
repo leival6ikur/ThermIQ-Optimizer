@@ -103,24 +103,24 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
     switch (severity) {
       case 'critical':
         return {
-          bg: 'bg-red-50',
-          border: 'border-red-300',
-          text: 'text-red-900',
-          button: 'hover:bg-red-100',
+          bg: 'bg-red-50 dark:bg-red-900/20',
+          border: 'border-red-300 dark:border-red-800',
+          text: 'text-red-900 dark:text-red-300',
+          button: 'hover:bg-red-100 dark:hover:bg-red-800/30',
         };
       case 'warning':
         return {
-          bg: 'bg-yellow-50',
-          border: 'border-yellow-300',
-          text: 'text-yellow-900',
-          button: 'hover:bg-yellow-100',
+          bg: 'bg-yellow-50 dark:bg-yellow-900/20',
+          border: 'border-yellow-300 dark:border-yellow-800',
+          text: 'text-yellow-900 dark:text-yellow-300',
+          button: 'hover:bg-yellow-100 dark:hover:bg-yellow-800/30',
         };
       default:
         return {
-          bg: 'bg-blue-50',
-          border: 'border-blue-300',
-          text: 'text-blue-900',
-          button: 'hover:bg-blue-100',
+          bg: 'bg-blue-50 dark:bg-blue-900/20',
+          border: 'border-blue-300 dark:border-blue-800',
+          text: 'text-blue-900 dark:text-blue-300',
+          button: 'hover:bg-blue-100 dark:hover:bg-blue-800/30',
         };
     }
   };
@@ -145,7 +145,7 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
     return (
       <div className="animate-pulse space-y-3">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-20 bg-gray-100 rounded-lg"></div>
+          <div key={i} className="h-20 bg-gray-100 dark:bg-gray-700 rounded-lg"></div>
         ))}
       </div>
     );
@@ -153,7 +153,7 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
 
   if (alerts.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
         <div className="text-4xl mb-2">✅</div>
         <div className="text-sm">No active alerts - system running smoothly</div>
       </div>
@@ -180,12 +180,12 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className={`font-semibold ${colors.text}`}>{alert.title}</h4>
-                    <span className="text-xs text-gray-500">{formatTime(alert.created_at)}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{formatTime(alert.created_at)}</span>
                   </div>
-                  <p className="text-sm text-gray-700 mb-2">{alert.message}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{alert.message}</p>
 
                   {alert.data && Object.keys(alert.data).length > 0 && (
-                    <div className="text-xs text-gray-600 space-y-1">
+                    <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                       {Object.entries(alert.data).map(([key, value]) => (
                         <div key={key} className="flex gap-2">
                           <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>

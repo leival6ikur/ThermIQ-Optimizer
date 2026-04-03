@@ -171,6 +171,24 @@ class Database:
                 )
             """)
 
+            # Hot water events table
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS hot_water_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    start_time DATETIME NOT NULL,
+                    end_time DATETIME,
+                    start_temp REAL NOT NULL,
+                    peak_temp REAL,
+                    end_temp REAL,
+                    duration_minutes INTEGER,
+                    energy_kwh REAL,
+                    estimated_cost REAL,
+                    event_type TEXT,
+                    is_legionella_cycle BOOLEAN DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
             # Create indices for performance
             await db.execute(
                 "CREATE INDEX IF NOT EXISTS idx_temp_timestamp ON temperature_readings(timestamp)"
@@ -198,6 +216,9 @@ class Database:
             )
             await db.execute(
                 "CREATE INDEX IF NOT EXISTS idx_metrics_period ON performance_metrics(period_start, period_end)"
+            )
+            await db.execute(
+                "CREATE INDEX IF NOT EXISTS idx_hot_water_start ON hot_water_events(start_time)"
             )
 
             await db.commit()
@@ -779,6 +800,84 @@ class Database:
             ) as cursor:
                 rows = await cursor.fetchall()
                 return [dict(row) for row in rows]
+
+    async def start_hot_water_event(self, start_time: datetime, start_temp: float) -> int:
+        """Start tracking a new hot water heating event"""
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                """
+                INSERT INTO hot_water_events (start_time, start_temp)
+                VALUES (?, ?)
+                """,
+                (start_time, start_temp)
+            )
+            await db.commit()
+            return cursor.lastrowid
+
+    async def end_hot_water_event(self, event_id: int, end_time: datetime, peak_temp: float,
+                                   end_temp: float, energy_kwh: float, estimated_cost: float,
+                                   event_type: str, is_legionella: bool = False) -> bool:
+        """Complete a hot water heating event with final data"""
+        duration_minutes = 0
+        async with aiosqlite.connect(self.db_path) as db:
+            # Get start time to calculate duration
+            async with db.execute(
+                "SELECT start_time FROM hot_water_events WHERE id = ?",
+                (event_id,)
+            ) as cursor:
+                row = await cursor.fetchone()
+                if row:
+                    start = datetime.fromisoformat(row[0])
+                    duration_minutes = int((end_time - start).total_seconds() / 60)
+
+            await db.execute(
+                """
+                UPDATE hot_water_events
+                SET end_time = ?, peak_temp = ?, end_temp = ?, duration_minutes = ?,
+                    energy_kwh = ?, estimated_cost = ?, event_type = ?, is_legionella_cycle = ?
+                WHERE id = ?
+                """,
+                (end_time, peak_temp, end_temp, duration_minutes, energy_kwh,
+                 estimated_cost, event_type, is_legionella, event_id)
+            )
+            await db.commit()
+            return True
+
+    async def get_hot_water_events(self, start: datetime, end: datetime) -> List[Dict[str, Any]]:
+        """Get hot water heating events for a time range"""
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                """
+                SELECT * FROM hot_water_events
+                WHERE start_time >= ? AND start_time < ?
+                ORDER BY start_time DESC
+                """,
+                (start, end)
+            ) as cursor:
+                rows = await cursor.fetchall()
+                return [dict(row) for row in rows]
+
+    async def get_hot_water_stats(self, start: datetime, end: datetime) -> Dict[str, Any]:
+        """Get hot water statistics for a time range"""
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                """
+                SELECT
+                    COUNT(*) as event_count,
+                    SUM(energy_kwh) as total_energy,
+                    SUM(estimated_cost) as total_cost,
+                    AVG(peak_temp) as avg_peak_temp,
+                    AVG(duration_minutes) as avg_duration,
+                    SUM(CASE WHEN is_legionella_cycle = 1 THEN 1 ELSE 0 END) as legionella_cycles
+                FROM hot_water_events
+                WHERE start_time >= ? AND start_time < ? AND end_time IS NOT NULL
+                """,
+                (start, end)
+            ) as cursor:
+                row = await cursor.fetchone()
+                return dict(row) if row else {}
 
 
 # Global database instance

@@ -934,3 +934,146 @@ async def get_temperature_trend(hours: int = 24):
     except Exception as e:
         logger.error(f"Error getting temperature trend: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/hot-water/events")
+async def get_hot_water_events(days: int = 7):
+    """
+    Get hot water heating events for the past N days.
+
+    Args:
+        days: Number of days to fetch (default 7, max 30)
+    """
+    try:
+        if days > 30:
+            raise HTTPException(status_code=400, detail="Maximum 30 days")
+
+        db = await get_database()
+        end = datetime.now()
+        start = end - timedelta(days=days)
+
+        events = await db.get_hot_water_events(start, end)
+
+        return {
+            "events": events,
+            "count": len(events),
+            "period_days": days
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting hot water events: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/hot-water/stats")
+async def get_hot_water_stats(days: int = 7):
+    """
+    Get hot water statistics for the past N days.
+
+    Args:
+        days: Number of days to analyze (default 7, max 30)
+    """
+    try:
+        if days > 30:
+            raise HTTPException(status_code=400, detail="Maximum 30 days")
+
+        db = await get_database()
+        end = datetime.now()
+        start = end - timedelta(days=days)
+
+        stats = await db.get_hot_water_stats(start, end)
+
+        # Calculate daily averages
+        if stats.get('total_energy'):
+            daily_avg_kwh = stats['total_energy'] / days
+            daily_avg_cost = stats['total_cost'] / days
+        else:
+            daily_avg_kwh = 0
+            daily_avg_cost = 0
+
+        return {
+            "period_days": days,
+            "total_events": stats.get('event_count', 0),
+            "total_energy_kwh": round(stats.get('total_energy', 0), 2),
+            "total_cost": round(stats.get('total_cost', 0), 2),
+            "daily_avg_kwh": round(daily_avg_kwh, 2),
+            "daily_avg_cost": round(daily_avg_cost, 2),
+            "avg_peak_temp": round(stats.get('avg_peak_temp', 0), 1) if stats.get('avg_peak_temp') else None,
+            "avg_duration_minutes": round(stats.get('avg_duration', 0), 0) if stats.get('avg_duration') else None,
+            "legionella_cycles": stats.get('legionella_cycles', 0)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting hot water stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/hot-water/insights")
+async def get_hot_water_insights(days: int = 7):
+    """Get comprehensive hot water insights including patterns and recommendations"""
+    try:
+        if days > 30:
+            raise HTTPException(status_code=400, detail="Maximum 30 days")
+
+        from app.services.hot_water_service import get_hot_water_service
+        service = await get_hot_water_service()
+
+        insights = await service.get_hot_water_insights(days)
+
+        return insights
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting hot water insights: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/hot-water/schedule")
+async def get_hot_water_schedule(target_date: Optional[str] = None):
+    """
+    Get optimal hot water heating schedule for a specific date.
+
+    Args:
+        target_date: Date in format YYYY-MM-DD (defaults to today)
+    """
+    try:
+        if target_date:
+            try:
+                target = datetime.strptime(target_date, '%Y-%m-%d').date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        else:
+            target = date.today()
+
+        # Get prices for the target date
+        db = await get_database()
+        start = datetime.combine(target, datetime.min.time())
+        end = start + timedelta(days=1)
+
+        prices = await db.get_electricity_prices(start, end)
+
+        if not prices:
+            raise HTTPException(status_code=404, detail=f"No prices found for {target}")
+
+        # Generate hot water schedule
+        from app.services.hot_water_service import get_hot_water_service
+        service = await get_hot_water_service()
+
+        schedule = await service.get_daily_hot_water_schedule(prices)
+
+        return {
+            "date": target.isoformat(),
+            "schedule": schedule,
+            "count": len(schedule)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting hot water schedule: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

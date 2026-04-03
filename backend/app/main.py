@@ -20,6 +20,7 @@ from app.database import get_database
 from app.services.mqtt_manager import get_mqtt_manager
 from app.services.nord_pool_client import get_nordpool_client
 from app.services.optimization_engine import get_optimization_engine
+from app.services.weather_service import get_weather_service
 from app.services.broker_manager import get_broker_manager, check_system_mosquitto
 from app.api.routes import router as api_router, fetch_and_store_prices
 from app.api.websocket import router as ws_router, register_mqtt_callbacks, set_event_loop
@@ -270,6 +271,24 @@ async def lifespan(app: FastAPI):
         # Initialize optimization engine
         engine = get_optimization_engine()
         logger.info("Optimization engine initialized")
+
+        # Initialize weather service (if configured)
+        weather_config = config.config.get('weather', {})
+        if weather_config.get('enabled', False):
+            api_key = weather_config.get('api_key')
+            latitude = config.config.get('location', {}).get('latitude')
+            longitude = config.config.get('location', {}).get('longitude')
+
+            if api_key and latitude and longitude:
+                weather_service = get_weather_service(api_key, latitude, longitude)
+                if weather_service:
+                    logger.info("Weather service initialized")
+                else:
+                    logger.warning("Weather service initialization failed")
+            else:
+                logger.warning("Weather service enabled but missing API key or location")
+        else:
+            logger.info("Weather service disabled in configuration")
 
         # Fetch initial prices
         logger.info("Fetching initial prices...")

@@ -913,7 +913,7 @@ Family AI assistant running alongside ThermIQ on Raspberry Pi.
 **Status:** ✅ COMPLETE  
 **Value Delivered:** Significant UI improvements, energy tracking, real-time analytics
 
-### Sprint 2: Intelligence (In Progress - April 3, 2026)
+### ✅ Sprint 2: Intelligence (COMPLETE - April 3, 2026)
 - [x] Smart alerts system (7h → 4h actual)
   - [x] Database schema (alerts, performance_metrics tables)
   - [x] Alert evaluation service (5 alert types: efficiency, comfort, price_opportunity, maintenance, system_error)
@@ -921,7 +921,14 @@ Family AI assistant running alongside ThermIQ on Raspberry Pi.
   - [x] Background job scheduler (runs every 15 minutes)
   - [x] Frontend AlertsPanel component
   - [x] Integration with DashboardPage
-- [ ] Weather integration (5h) - REMAINING
+- [x] Weather integration (5h → 3h actual)
+  - [x] WeatherService with OpenWeather API
+  - [x] Current weather endpoint
+  - [x] 48-hour forecast endpoint
+  - [x] Heating load prediction based on weather
+  - [x] Temperature trend analysis
+  - [x] WeatherWidget component with forecast display
+  - [x] Integration with InsightsPage
 - [x] Database enhancements (included in alerts system)
 - [x] Background jobs (included in alerts system)
 - [x] User documentation (8h → 6h actual)
@@ -931,9 +938,9 @@ Family AI assistant running alongside ThermIQ on Raspberry Pi.
   - [x] BEST_PRACTICES.md (15+ pages)
   - [x] CONFIGURATION.md (20+ pages)
 
-**Total:** 25 hours estimated (added docs), ~10 hours actual  
-**Status:** 🚧 IN PROGRESS (Alerts + Docs complete, Weather remaining)  
-**Value:** Proactive monitoring, comprehensive documentation, user empowerment
+**Total:** 25 hours estimated, 13 hours actual  
+**Status:** ✅ COMPLETE  
+**Value Delivered:** Proactive monitoring, weather-aware optimization potential, comprehensive documentation
 
 ### Sprint 3: Polish & Deploy (1 week)
 - [ ] Raspberry Pi deployment (4h)

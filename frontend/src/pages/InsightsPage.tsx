@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { EnhancedTemperatureChart } from '../components/EnhancedTemperatureChart';
 import { EnergyDashboard } from '../components/EnergyDashboard';
+import { WeatherWidget } from '../components/WeatherWidget';
 import type { SystemStatus, TemperatureReading, ElectricityPrice } from '../types/index.js';
 
 export const InsightsPage: React.FC = () => {
@@ -333,6 +334,12 @@ export const InsightsPage: React.FC = () => {
               vatRate={24}
             />
           </div>
+        </div>
+
+        {/* Weather Widget */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Weather Forecast & Heating Load</h2>
+          <WeatherWidget showForecast={true} showHeatingLoad={true} />
         </div>
 
         {/* Info Box */}

@@ -21,6 +21,7 @@ from app.models import (
 from app.services.mqtt_manager import get_mqtt_manager
 from app.services.nord_pool_client import get_nordpool_client
 from app.services.optimization_engine import get_optimization_engine
+from app.services.weather_service import get_weather_service
 from app.database import get_database
 from app.config import get_config
 
@@ -803,4 +804,133 @@ async def evaluate_alerts(background_tasks: BackgroundTasks):
 
     except Exception as e:
         logger.error(f"Error triggering alert evaluation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/weather/current")
+async def get_current_weather():
+    """Get current weather conditions"""
+    try:
+        weather_service = get_weather_service()
+
+        if not weather_service:
+            raise HTTPException(
+                status_code=503,
+                detail="Weather service not configured. Add API key and location in config.yaml"
+            )
+
+        current = await weather_service.get_current_weather()
+
+        if not current:
+            raise HTTPException(status_code=503, detail="Unable to fetch weather data")
+
+        return current
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting current weather: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/weather/forecast")
+async def get_weather_forecast(hours: int = 48):
+    """
+    Get weather forecast for next N hours.
+
+    Args:
+        hours: Number of hours to forecast (default 48, max 120)
+    """
+    try:
+        if hours > 120:
+            raise HTTPException(status_code=400, detail="Maximum 120 hours forecast")
+
+        weather_service = get_weather_service()
+
+        if not weather_service:
+            raise HTTPException(
+                status_code=503,
+                detail="Weather service not configured. Add API key and location in config.yaml"
+            )
+
+        forecasts = await weather_service.get_forecast(hours)
+
+        return {
+            "forecasts": [
+                {
+                    "timestamp": f.timestamp.isoformat(),
+                    "temperature": f.temperature,
+                    "feels_like": f.feels_like,
+                    "humidity": f.humidity,
+                    "wind_speed": f.wind_speed,
+                    "clouds": f.clouds,
+                    "description": f.description,
+                    "icon": f.icon
+                }
+                for f in forecasts
+            ],
+            "count": len(forecasts)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting weather forecast: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/weather/heating-load")
+async def get_heating_load_forecast(hours: int = 24):
+    """
+    Get estimated heating load forecast based on weather.
+
+    Args:
+        hours: Number of hours to forecast (default 24, max 48)
+    """
+    try:
+        if hours > 48:
+            raise HTTPException(status_code=400, detail="Maximum 48 hours for heating load forecast")
+
+        weather_service = get_weather_service()
+
+        if not weather_service:
+            raise HTTPException(
+                status_code=503,
+                detail="Weather service not configured. Add API key and location in config.yaml"
+            )
+
+        heating_loads = await weather_service.get_heating_load_forecast(hours)
+
+        return {
+            "heating_loads": heating_loads,
+            "count": len(heating_loads)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting heating load forecast: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/weather/temperature-trend")
+async def get_temperature_trend(hours: int = 24):
+    """Get temperature trend analysis"""
+    try:
+        weather_service = get_weather_service()
+
+        if not weather_service:
+            raise HTTPException(
+                status_code=503,
+                detail="Weather service not configured. Add API key and location in config.yaml"
+            )
+
+        trend = await weather_service.get_temperature_trend(hours)
+
+        return trend
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting temperature trend: {e}")
         raise HTTPException(status_code=500, detail=str(e))

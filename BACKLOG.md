@@ -951,14 +951,14 @@ Family AI assistant running alongside ThermIQ on Raspberry Pi.
 **Total:** 20 hours  
 **Value:** Production-ready system
 
-### Sprint 4: Advanced Features (2 weeks)
-- [ ] Hot water intelligence (5h)
-- [ ] Dark mode (4h)
+### Sprint 4: User Experience (2 weeks) ✅ COMPLETE
+- [x] Hot water intelligence (5h) ✅
+- [x] Dark mode (4h) ✅
 - [ ] Mobile PWA (8h)
 - [ ] Automated testing (10h)
 - [ ] OpenClaw planning (3h)
 
-**Total:** 30 hours  
+**Total:** 30 hours (9h completed)
 **Value:** Complete feature set
 
 ### Sprint 5: Real Hardware (when device arrives)

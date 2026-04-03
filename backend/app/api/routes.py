@@ -684,6 +684,35 @@ async def get_alerts(active_only: bool = True, limit: int = 20):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/alerts/all", response_model=List[Alert])
+async def get_all_alerts_history(limit: int = 100):
+    """Get all alerts including resolved ones for alerts history page"""
+    try:
+        db = await get_database()
+        alerts_data = await db.get_all_alerts(limit=limit, include_inactive=True)
+
+        # Convert to Alert models
+        alerts = []
+        for data in alerts_data:
+            alerts.append(Alert(
+                id=data['id'],
+                alert_type=data['alert_type'],
+                severity=data['severity'],
+                title=data['title'],
+                message=data['message'],
+                data=data.get('data'),
+                created_at=datetime.fromisoformat(data['created_at']),
+                acknowledged_at=datetime.fromisoformat(data['acknowledged_at']) if data.get('acknowledged_at') else None,
+                resolved_at=datetime.fromisoformat(data['resolved_at']) if data.get('resolved_at') else None,
+                is_active=bool(data['is_active'])
+            ))
+
+        return alerts
+    except Exception as e:
+        logger.error(f"Error getting all alerts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/alerts/{alert_id}/acknowledge")
 async def acknowledge_alert(alert_id: int):
     """Acknowledge an alert"""

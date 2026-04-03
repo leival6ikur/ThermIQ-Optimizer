@@ -727,7 +727,7 @@ async def get_alert_config():
     """Get alert system configuration"""
     try:
         config = get_config()
-        alerts_config = config.config.get('alerts', {})
+        alerts_config = config.get('alerts', {})
 
         return AlertConfig(
             enabled=alerts_config.get('enabled', True),
@@ -750,17 +750,17 @@ async def update_alert_config(alert_config: AlertConfig):
     try:
         config = get_config()
 
-        # Update config
-        if 'alerts' not in config.config:
-            config.config['alerts'] = {}
+        # Update config (need to access internal _config for setting)
+        if 'alerts' not in config._config:
+            config._config['alerts'] = {}
 
-        config.config['alerts']['enabled'] = alert_config.enabled
-        config.config['alerts']['efficiency_cop_threshold'] = alert_config.efficiency_cop_threshold
-        config.config['alerts']['efficiency_check_interval_minutes'] = alert_config.efficiency_check_interval_minutes
-        config.config['alerts']['price_opportunity_threshold_percent'] = alert_config.price_opportunity_threshold_percent
-        config.config['alerts']['comfort_deviation_threshold'] = alert_config.comfort_deviation_threshold
-        config.config['alerts']['comfort_duration_minutes'] = alert_config.comfort_duration_minutes
-        config.config['alerts']['max_active_alerts'] = alert_config.max_active_alerts
+        config._config['alerts']['enabled'] = alert_config.enabled
+        config._config['alerts']['efficiency_cop_threshold'] = alert_config.efficiency_cop_threshold
+        config._config['alerts']['efficiency_check_interval_minutes'] = alert_config.efficiency_check_interval_minutes
+        config._config['alerts']['price_opportunity_threshold_percent'] = alert_config.price_opportunity_threshold_percent
+        config._config['alerts']['comfort_deviation_threshold'] = alert_config.comfort_deviation_threshold
+        config._config['alerts']['comfort_duration_minutes'] = alert_config.comfort_duration_minutes
+        config._config['alerts']['max_active_alerts'] = alert_config.max_active_alerts
 
         config.save()
 
@@ -787,7 +787,7 @@ async def evaluate_alerts(background_tasks: BackgroundTasks):
 
             # Get current config
             config = get_config()
-            alerts_config = config.config.get('alerts', {})
+            alerts_config = config.get('alerts', {})
             if alerts_config:
                 alert_service.update_config(AlertConfig(**alerts_config))
 

@@ -142,7 +142,7 @@ async def scheduled_alert_evaluation():
 
         # Get current config
         config = get_config()
-        alerts_config = config.config.get('alerts', {})
+        alerts_config = config.get('alerts', {})
         if alerts_config:
             alert_service.update_config(AlertConfig(**alerts_config))
 
@@ -273,11 +273,13 @@ async def lifespan(app: FastAPI):
         logger.info("Optimization engine initialized")
 
         # Initialize weather service (if configured)
-        weather_config = config.config.get('weather', {})
+        config = get_config()
+        weather_config = config.get('weather', {})
         if weather_config.get('enabled', False):
             api_key = weather_config.get('api_key')
-            latitude = config.config.get('location', {}).get('latitude')
-            longitude = config.config.get('location', {}).get('longitude')
+            location_config = config.get('location', {})
+            latitude = location_config.get('latitude')
+            longitude = location_config.get('longitude')
 
             if api_key and latitude and longitude:
                 weather_service = get_weather_service(api_key, latitude, longitude)
@@ -298,7 +300,6 @@ async def lifespan(app: FastAPI):
         scheduler.start()
 
         # Schedule price fetch daily at configured time
-        config = get_config()
         fetch_time_str = config.nordpool.get('fetch_time', '13:00')
         fetch_hour, fetch_minute = map(int, fetch_time_str.split(':'))
 
@@ -332,7 +333,7 @@ async def lifespan(app: FastAPI):
         logger.info("Scheduled daily data maintenance at 01:00")
 
         # Schedule alert evaluation every 15 minutes
-        alert_interval = config.config.get('alerts', {}).get('evaluation_interval', 900)  # 15 minutes default
+        alert_interval = config.get('alerts', {}).get('evaluation_interval', 900)  # 15 minutes default
         scheduler.add_job(
             scheduled_alert_evaluation,
             'interval',

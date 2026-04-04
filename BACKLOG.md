@@ -1,15 +1,25 @@
-# ThermIQ Feature Backlog
+# Thermi-Nator Feature Backlog
 
-**Last Updated:** April 3, 2026  
-**Current Version:** MVP + Phase 1 & 2 Complete  
-**Latest:** Enhanced Temperature Chart + Energy Dashboard ✅
+**Last Updated:** April 4, 2026  
+**Current Version:** MVP + Sprints 1-3 Complete + Sprint 4 Partial  
+**Latest:** NetAtmo Integration Infrastructure + Hot Water Intelligence Expansion ✅
 
-This document tracks all planned features, improvements, and ideas for ThermIQ.
+This document tracks all planned features, improvements, and ideas for Thermi-Nator.
 
 ## 🎉 Recent Completions
-- ✅ **Phase 1 Complete** - Enhanced Temperature Chart with price zones and heating periods
-- ✅ **Phase 2 Complete** - Energy Dashboard with power tracking and cost analysis
-- ✅ **System Insights Page** - New /insights route with performance metrics
+- ✅ **Sprint 1 Complete** - Enhanced Temperature Chart with price zones and heating periods
+- ✅ **Sprint 2 Complete** - Smart Alerts + Weather Integration + Documentation
+- ✅ **Sprint 3 Complete** - Comparison View + Automated Testing + Deployment Scripts
+- ✅ **Sprint 4 (Partial)** - Hot Water Intelligence (basic) + Dark Mode + NetAtmo Infrastructure
+
+## 🚀 Next Up: Sprint 5
+- **Hot Water Intelligence Phase 1 & 2** (34 hours approved)
+  - Cost-aware scheduling with price optimization
+  - Legionella prevention (safety compliance)
+  - User profiles and preferences
+  - Smart learning mode (pattern detection)
+  - Space heating coordination
+  - Usage insights dashboard
 
 ---
 
@@ -384,9 +394,9 @@ Enhance existing temperature chart with contextual overlays.
 ---
 
 ### E. Comparison View 📈
-**Status:** Planned  
+**Status:** ✅ COMPLETE (April 4, 2026)  
 **Priority:** 🥉 LOW  
-**Effort:** 4 hours  
+**Effort:** 4 hours (actual: ~3 hours)  
 **Type:** Feature
 
 **Description:**
@@ -433,52 +443,637 @@ Avg Temp: 21.2°C │ 21.0°C   │ +0.2° ↑
 ---
 
 ### F. Hot Water Intelligence 🚿
-**Status:** Planned  
-**Priority:** 🥉 LOW  
-**Effort:** 5 hours  
-**Type:** Feature
+**Status:** Planned (Phase 1 & 2 Approved)  
+**Priority:** 🥇 HIGH  
+**Effort:** Phase 1: 16 hours | Phase 2: 18 hours | Total: 34 hours  
+**Type:** Feature (Major)
 
 **Description:**
-Dedicated hot water heating management and optimization.
+Intelligent hot water heating management with cost optimization, safety compliance, learning capability, and holistic system coordination.
+
+---
+
+#### **Phase 1: Must Have (MVP) - 16 hours**
+
+##### **F1. Cost-Aware Scheduling** (5 hours)
+**Priority:** 🥇 HIGH
+
+**Problem:** Heating water during expensive electricity hours wastes money.
 
 **Features:**
+- Price-optimized heating schedule
+- Integration with Nord Pool hourly prices
+- Multi-strategy support:
+  - "Maximum Savings" - Heat only when cheap, risk occasional shortfall
+  - "Balanced" (default) - Optimize cost but guarantee availability
+  - "Comfort First" - Always ready, cost secondary
+- Price threshold configuration (only heat when < X ¢/kWh unless urgent)
+- Minimum ready time before peak usage
+- Temperature reserve for unexpected usage (+5°C buffer)
 
-**1. DHW Status Dashboard**
+**Technical Implementation:**
+```python
+# backend/app/services/dhw_optimizer.py
+def optimize_dhw_heating(usage_forecast, price_forecast, constraints):
+    # Find cheapest heating windows before each usage event
+    # Ensure constraints met (min temp, ready time)
+    # Return optimized schedule
 ```
-Current Temperature: 48°C
-Target: 50°C
-Status: Heating required soon
 
-Last Heated: 2 hours ago
-Next Heating: When price < 4¢/kWh
-Cost Today: €0.85
+**Database:**
+```sql
+CREATE TABLE dhw_schedules (
+    timestamp DATETIME,
+    action TEXT,  -- heat/maintain/idle
+    target_temp REAL,
+    reason TEXT,
+    estimated_cost REAL
+);
 ```
 
-**2. Usage Detection**
-- Detect temperature drops (usage events)
-- Track usage frequency and volume
-- Daily/weekly usage patterns
-- Peak usage times
+**Settings UI:**
+- Strategy selector (radio buttons)
+- Price threshold slider (¢/kWh)
+- Minimum ready time (hours before peak)
+- Temperature reserve toggle
 
-**3. Legionella Prevention**
-- Schedule weekly 60°C cycle
-- Track compliance
-- Auto-schedule during cheap hours
-- Safety notifications
+**Value:** 30-50% reduction in DHW heating cost
 
-**4. Cost Allocation**
-- Separate DHW cost from space heating
-- Show DHW as % of total energy
-- Optimize DHW heating schedule
-- Use cheapest electricity hours
+---
 
-**5. Smart Scheduling**
-- Heat during off-peak hours
-- Maintain minimum safe temp (40°C)
-- Boost before high-usage times
-- Coordinate with space heating
+##### **F2. Safety Compliance (Legionella Prevention)** (4 hours)
+**Priority:** 🥇 HIGH (Legal requirement)
 
-**Value:** Safety compliance, cost optimization, usage insights
+**Problem:** Legionella bacteria grows in water 20-45°C. Legal requirement to heat to 60°C weekly.
+
+**Features:**
+- Automatic weekly 60°C heating cycle
+- Smart scheduling (pick cheapest 3-hour window each week)
+- Compliance logging (for health inspections)
+- Temperature danger zone monitoring (20-45°C >24h = alert)
+- Mandatory cycle (cannot be disabled)
+- Failure detection (alert if doesn't reach 60°C)
+- Time-at-temperature histogram tracking
+
+**Technical Implementation:**
+```python
+# backend/app/services/legionella_service.py
+legionella_cycle = {
+    'frequency': 'weekly',
+    'day': auto_select_cheapest_day(),
+    'target': 60,  # °C
+    'hold_time': 60,  # minutes
+    'mandatory': True
+}
+```
+
+**Database:**
+```sql
+CREATE TABLE legionella_cycles (
+    id INTEGER PRIMARY KEY,
+    scheduled_at DATETIME,
+    executed_at DATETIME,
+    peak_temp REAL,
+    hold_duration_minutes INTEGER,
+    success BOOLEAN,
+    notes TEXT
+);
+```
+
+**Settings UI:**
+- Cycle day selector (Auto/Monday/.../Sunday)
+- Preferred time window (Night/Morning/Auto)
+- Compliance log display (last 12 cycles)
+- "Test Cycle Now" button
+
+**Alerts:**
+- "Legionella cycle missed" (critical)
+- "Temperature didn't reach 60°C" (critical)
+- "Water in danger zone >24h" (warning)
+
+**Value:** Legal compliance + health safety + peace of mind
+
+---
+
+##### **F3. Basic User Profiles** (4 hours)
+**Priority:** 🥇 HIGH
+
+**Problem:** Everyone's hot water needs are different - families vs singles, morning vs evening usage.
+
+**Features:**
+- Pre-made profile templates:
+  - Family (4+ people) - High morning/evening demand
+  - Couple - Medium morning/evening demand
+  - Single - Low morning OR evening demand
+  - Work from Home - Distributed usage
+  - Seniors - Lower temperature, frequent small usage
+  - Custom - Fully configurable
+- Peak usage time configuration
+- Target temperature preferences
+- Weekend schedule override
+
+**Technical Implementation:**
+```python
+# Profiles stored in config
+hot_water_profile = {
+    'type': 'family_4',
+    'morning_peak': {
+        'time_start': '06:00',
+        'time_end': '08:00',
+        'target_temp': 55,
+        'priority': 'high'
+    },
+    'evening_peak': {
+        'time_start': '18:00',
+        'time_end': '21:00',
+        'target_temp': 55,
+        'priority': 'high'
+    },
+    'midday': {
+        'time_start': '08:00',
+        'time_end': '18:00',
+        'target_temp': 45,
+        'priority': 'low'
+    },
+    'night': {
+        'time_start': '21:00',
+        'time_end': '06:00',
+        'target_temp': 40,
+        'priority': 'economy'
+    },
+    'weekend_schedule': 'different'  # or 'same'
+}
+```
+
+**Settings UI:**
+- Profile selector (dropdown with descriptions)
+- Peak time sliders (morning: 06:00-08:00, evening: 18:00-21:00)
+- Temperature preferences (comfort vs economy)
+- "Different weekend schedule" toggle
+- Visual timeline showing configured schedule
+
+**Value:** Personalized comfort + maximum savings
+
+---
+
+##### **F4. Failure Detection & Alerts** (3 hours)
+**Priority:** 🥇 HIGH
+
+**Problem:** Hot water system failing silently = cold showers = angry family.
+
+**Features:**
+- Critical alerts:
+  - Heating not working (active 2h but temp <5°C rise)
+  - Rapid cooling (15°C drop in 30min, no usage detected)
+  - Legionella risk (temp in 20-45°C for >24h)
+  - Excessive heating (>6h/day vs typical 2-3h)
+- Warning alerts:
+  - Missed usage prediction (usage occurred, no hot water)
+  - Recovery time longer than expected
+  - Temperature fluctuations (possible sensor issue)
+- Alert history log
+- Diagnostic recommendations
+
+**Technical Implementation:**
+```python
+# backend/app/services/dhw_alerts.py
+alert_rules = [
+    {
+        'name': 'heating_failure',
+        'condition': 'heating_active_for_2h_and_temp_rise_lt_5',
+        'severity': 'critical',
+        'message': 'Hot water heater may be failing - heating but not rising',
+        'action': 'recommend_service_call'
+    },
+    {
+        'name': 'rapid_cooling',
+        'condition': 'temp_drop_15c_in_30min_no_usage',
+        'severity': 'warning',
+        'message': 'Possible hot water leak or insulation issue',
+        'action': 'recommend_inspection'
+    },
+    # ... more rules
+]
+```
+
+**Database:**
+```sql
+CREATE TABLE dhw_alerts (
+    id INTEGER PRIMARY KEY,
+    timestamp DATETIME,
+    alert_type TEXT,
+    severity TEXT,  -- critical/warning/info
+    message TEXT,
+    acknowledged BOOLEAN DEFAULT 0,
+    resolved_at DATETIME
+);
+```
+
+**Settings UI:**
+- Alert sensitivity customization
+- Notification preferences
+- Alert history (sortable, filterable)
+- "Dismiss All" / "Acknowledge" buttons
+
+**Value:** Catch problems early, prevent user dissatisfaction
+
+---
+
+#### **Phase 2: Should Have - 18 hours**
+
+##### **F5. Smart Learning Mode** (8 hours)
+**Priority:** 🥈 MEDIUM
+
+**Problem:** You don't know your actual hot water usage patterns - they change over time.
+
+**Features:**
+- Automatic usage detection (temperature drops = water drawn)
+- Volume estimation (temp drop × recovery time)
+- Pattern recognition:
+  - Peak usage times (morning/evening shifts)
+  - Typical consumption per event
+  - Weekly patterns (weekday vs weekend)
+  - Seasonal variations
+- 2-week learning period (minimum data requirement)
+- Confidence scoring for predictions
+- Auto-adjustment of heating schedule based on learned patterns
+
+**Technical Implementation:**
+```python
+# backend/app/services/dhw_learning.py
+class UsageLearningEngine:
+    def detect_usage_event(self, temp_readings):
+        # Detect significant temp drops
+        # Calculate volume: ΔT × recovery_time × efficiency
+        # Store event with metadata
+        
+    def learn_patterns(self, usage_history):
+        # Group by time-of-day, day-of-week
+        # Find recurring patterns
+        # Calculate confidence scores
+        # Return learned_schedule
+        
+    def predict_next_usage(self, current_datetime, learned_patterns):
+        # Based on patterns, predict next usage
+        # Return: time, volume, confidence
+```
+
+**Database:**
+```sql
+CREATE TABLE dhw_usage_events (
+    id INTEGER PRIMARY KEY,
+    timestamp DATETIME,
+    temp_before REAL,
+    temp_after REAL,
+    estimated_volume_liters REAL,
+    duration_minutes INTEGER,
+    event_type TEXT,  -- shower/dishes/laundry/other
+    detected_pattern TEXT  -- morning_shower/evening_dishes/etc
+);
+
+CREATE TABLE dhw_learned_patterns (
+    id INTEGER PRIMARY KEY,
+    pattern_name TEXT,
+    time_range_start TIME,
+    time_range_end TIME,
+    days_of_week TEXT,  -- JSON array
+    avg_volume_liters REAL,
+    required_temp REAL,
+    confidence_score REAL,
+    last_updated DATETIME
+);
+```
+
+**Settings UI:**
+- "Learning Mode" toggle (on by default for first 2 weeks)
+- "Pattern Insights" page:
+  - Detected usage patterns (cards)
+  - Confidence levels (progress bars)
+  - Usage timeline visualization
+- "Trust Learning" slider (0-100%, how much to rely on patterns)
+- "Reset Learning" button (start from scratch)
+- "Manual Override Today" for exceptions
+
+**Insights Page Example:**
+```
+Detected Patterns (last 2 weeks):
+
+📊 Morning Shower
+   Time: 07:15 ± 20min
+   Volume: ~120L
+   Frequency: Weekdays (95% confident)
+   Action: Preheat to 50°C by 06:45
+
+📊 Evening Dishes
+   Time: 19:30 ± 30min
+   Volume: ~40L
+   Frequency: Daily (88% confident)
+   Action: Maintain 45°C after dinner
+```
+
+**Value:** Zero-effort optimization, adapts to lifestyle changes automatically
+
+---
+
+##### **F6. Integration with Space Heating** (6 hours)
+**Priority:** 🥈 MEDIUM
+
+**Problem:** Heat pump can't do both efficiently. Competition for compressor time.
+
+**Features:**
+- Coordinated scheduling (avoid conflicts)
+- Priority matrix (space vs DHW based on urgency & cost)
+- Opportunistic DHW heating during cheap hours
+- COP optimization (prefer DHW when outdoor temp is mild)
+- Sequential heating logic (DHW first, then space - or vice versa)
+- System-wide efficiency tracking
+
+**Technical Implementation:**
+```python
+# backend/app/services/system_coordinator.py
+class HeatingCoordinator:
+    def coordinate_schedules(self, space_schedule, dhw_schedule, prices):
+        """
+        Objective: Maximize system-wide efficiency and minimize cost
+        
+        Decision matrix:
+        - If both critical: DHW first (faster recovery)
+        - If cheap hour: Opportunistic DHW preheat
+        - If space has priority: Defer DHW unless critical
+        - If outdoor temp mild: Prefer DHW (better COP)
+        """
+        combined = []
+        
+        for hour in next_24_hours:
+            space_priority = space_schedule[hour]['priority']
+            dhw_priority = dhw_schedule[hour]['priority']
+            price = prices[hour]
+            outdoor_temp = forecast[hour]['temp']
+            
+            decision = self._decide_action(
+                space_priority, 
+                dhw_priority, 
+                price, 
+                outdoor_temp
+            )
+            
+            combined.append({
+                'hour': hour,
+                'action': decision['action'],
+                'reason': decision['reason'],
+                'estimated_cop': decision['cop']
+            })
+        
+        return combined
+```
+
+**Database:**
+```sql
+CREATE TABLE system_coordination_log (
+    timestamp DATETIME,
+    decision TEXT,  -- space_only/dhw_only/sequential/both
+    space_priority TEXT,
+    dhw_priority TEXT,
+    price REAL,
+    outdoor_temp REAL,
+    reason TEXT,
+    actual_cop REAL
+);
+```
+
+**Settings UI:**
+- "DHW Priority" slider: Low → High (vs space heating)
+- "Opportunistic Heating" toggle (use cheap hours proactively)
+- "Minimum Space Comfort" threshold (never compromise below X°C)
+- "Coordination Strategy":
+  - Sequential (do one at a time - better COP)
+  - Parallel (faster but lower efficiency)
+  - Auto (system decides)
+
+**Dashboard Display:**
+- Combined schedule visualization (space + DHW timeline)
+- Conflict detection indicators
+- Efficiency metrics (system-wide COP)
+
+**Value:** System-wide optimization, avoid conflicts, maximize efficiency
+
+---
+
+##### **F7. Usage Insights Dashboard** (4 hours)
+**Priority:** 🥈 MEDIUM
+
+**Problem:** No visibility into DHW costs, usage patterns, or savings potential.
+
+**Features:**
+- Daily/weekly/monthly DHW metrics
+- Cost breakdown (heating vs legionella vs standby loss)
+- Usage pattern visualization
+- Efficiency tracking (COP average, recovery time)
+- Savings comparison (optimized vs baseline)
+- Export data (CSV)
+
+**Metrics Displayed:**
+```yaml
+daily_summary:
+  total_usage_liters: 180
+  events_count: 4
+  avg_temp_celsius: 48
+  energy_used_kwh: 3.2
+  cost_eur: 0.68
+  cost_breakdown:
+    heating: 0.55  # Regular heating
+    legionella: 0.13  # Weekly cycle
+    standby: 0.00  # Tank heat loss (minimal)
+  
+  efficiency:
+    cop_avg: 2.8
+    standby_loss_kwh: 0.4
+    recovery_time_minutes: 45
+    
+weekly_comparison:
+  this_week: 4.76
+  last_week: 5.20
+  savings_eur: -0.44
+  savings_percent: -8.5
+  
+usage_breakdown:
+  morning_showers: "60%"
+  evening_dishes: "25%"
+  laundry: "10%"
+  other: "5%"
+```
+
+**Visualizations:**
+1. **Usage Timeline** - When water was drawn (bar chart by hour)
+2. **Cost Attribution** - Space heating vs DHW (pie chart)
+3. **Temperature History** - 48h line chart with heating periods highlighted
+4. **Savings Tracker** - Cumulative savings vs baseline (line chart)
+5. **Weekly Comparison** - Bar chart (this week vs last week)
+
+**Technical Implementation:**
+```python
+# backend/app/api/dhw_analytics.py
+@router.get("/api/dhw/analytics/daily")
+async def get_daily_dhw_analytics(date: str):
+    # Query usage events, costs, temperatures
+    # Calculate metrics
+    # Return formatted data
+    
+@router.get("/api/dhw/analytics/weekly")
+async def get_weekly_dhw_analytics(week: str):
+    # Aggregate daily data
+    # Compare to previous week
+    # Calculate savings
+```
+
+**Settings UI:**
+- New "Hot Water Analytics" page
+- Time range selector (Day/Week/Month)
+- Compare to: Last period / Baseline / Target
+- Export button (download CSV)
+- Share button (generate report)
+
+**Value:** Visibility drives behavior change + validates optimization effectiveness
+
+---
+
+#### **Database Schema Summary**
+
+New tables required:
+```sql
+-- Scheduling
+CREATE TABLE dhw_schedules (
+    id INTEGER PRIMARY KEY,
+    timestamp DATETIME,
+    action TEXT,
+    target_temp REAL,
+    reason TEXT,
+    estimated_cost REAL
+);
+
+-- Compliance
+CREATE TABLE legionella_cycles (
+    id INTEGER PRIMARY KEY,
+    scheduled_at DATETIME,
+    executed_at DATETIME,
+    peak_temp REAL,
+    hold_duration_minutes INTEGER,
+    success BOOLEAN,
+    notes TEXT
+);
+
+-- Learning
+CREATE TABLE dhw_usage_events (
+    id INTEGER PRIMARY KEY,
+    timestamp DATETIME,
+    temp_before REAL,
+    temp_after REAL,
+    estimated_volume_liters REAL,
+    duration_minutes INTEGER,
+    event_type TEXT,
+    detected_pattern TEXT
+);
+
+CREATE TABLE dhw_learned_patterns (
+    id INTEGER PRIMARY KEY,
+    pattern_name TEXT,
+    time_range_start TIME,
+    time_range_end TIME,
+    days_of_week TEXT,
+    avg_volume_liters REAL,
+    required_temp REAL,
+    confidence_score REAL,
+    last_updated DATETIME
+);
+
+-- Alerts
+CREATE TABLE dhw_alerts (
+    id INTEGER PRIMARY KEY,
+    timestamp DATETIME,
+    alert_type TEXT,
+    severity TEXT,
+    message TEXT,
+    acknowledged BOOLEAN DEFAULT 0,
+    resolved_at DATETIME
+);
+
+-- Coordination
+CREATE TABLE system_coordination_log (
+    id INTEGER PRIMARY KEY,
+    timestamp DATETIME,
+    decision TEXT,
+    space_priority TEXT,
+    dhw_priority TEXT,
+    price REAL,
+    outdoor_temp REAL,
+    reason TEXT,
+    actual_cop REAL
+);
+```
+
+---
+
+#### **API Endpoints Summary**
+
+```python
+# Configuration
+GET  /api/dhw/config
+PUT  /api/dhw/config
+GET  /api/dhw/profiles  # List available profiles
+
+# Scheduling
+GET  /api/dhw/schedule/next-24h
+GET  /api/dhw/schedule/history?days=7
+
+# Monitoring
+GET  /api/dhw/status  # Current temp, next heating, cost today
+GET  /api/dhw/temperature/history?hours=48
+
+# Learning
+GET  /api/dhw/patterns/learned
+GET  /api/dhw/patterns/confidence
+POST /api/dhw/patterns/reset
+
+# Analytics
+GET  /api/dhw/analytics/daily?date=YYYY-MM-DD
+GET  /api/dhw/analytics/weekly?week=YYYY-WW
+GET  /api/dhw/analytics/monthly?month=YYYY-MM
+GET  /api/dhw/usage/events?days=7
+
+# Compliance
+GET  /api/dhw/legionella/history
+POST /api/dhw/legionella/test-cycle
+GET  /api/dhw/legionella/next-scheduled
+
+# Alerts
+GET  /api/dhw/alerts
+POST /api/dhw/alerts/{id}/acknowledge
+GET  /api/dhw/alerts/config
+PUT  /api/dhw/alerts/config
+
+# Coordination
+GET  /api/system/coordination/schedule
+GET  /api/system/coordination/status
+```
+
+---
+
+#### **Success Metrics**
+
+**Primary KPIs:**
+- DHW cost reduction: 30-40% vs baseline
+- Zero cold water events (user satisfaction)
+- 100% legionella cycle compliance
+- DHW COP average >2.5
+
+**Secondary KPIs:**
+- Pattern learning accuracy: 90%+ usage events predicted
+- User customization rate: >50% change defaults
+- Override frequency: <5% (automation works well)
+- Alert response time: Issues caught within 24h
+- System-wide efficiency: Combined COP improvement 5-10%
+
+**Value:** Safety compliance + significant cost savings + user satisfaction + zero-effort operation
 
 ---
 
@@ -679,14 +1274,14 @@ GET  /api/hotwater/usage?days=7
 **Type:** Feature (Major)
 
 **Description:**
-Family AI assistant running alongside ThermIQ on Raspberry Pi.
+Family AI assistant running alongside Thermi-Nator on Raspberry Pi.
 
 **Features:**
 - Google Calendar integration
 - Grocery list management
 - Task tracking
 - Family schedule coordination
-- Integration with ThermIQ status
+- Integration with Thermi-Nator status
 
 **See:** Separate planning document needed
 
@@ -715,7 +1310,7 @@ Family AI assistant running alongside ThermIQ on Raspberry Pi.
 **Type:** Infrastructure
 
 **Tasks:**
-1. Connect ThermIQ-ROOM2LP to heat pump EXT interface
+1. Connect Thermi-Nator-ROOM2LP to heat pump EXT interface
 2. Configure device WiFi
 3. Update MQTT topics to match real device
 4. Test all sensor readings
@@ -731,43 +1326,43 @@ Family AI assistant running alongside ThermIQ on Raspberry Pi.
 ---
 
 ### Q. Raspberry Pi Deployment
-**Status:** Ready to Deploy  
+**Status:** ✅ COMPLETE (April 4, 2026)  
 **Priority:** High  
-**Effort:** 4 hours (one-time setup)  
+**Effort:** 4 hours (actual: ~4 hours)  
 **Type:** Infrastructure
 
-**Tasks:**
-1. Order Raspberry Pi 4/5 (4GB) + accessories
-2. Install Raspberry Pi OS Lite
-3. Create automated installation script
-4. Deploy ThermIQ stack
-5. Configure systemd services
-6. Setup Nginx reverse proxy
-7. Test 24/7 operation
-8. Configure automatic backups
-9. Document deployment process
+**Tasks Completed:**
+1. ✅ Created automated installation script (`deployment/raspberry-pi/install.sh`)
+2. ✅ systemd service configuration included
+3. ✅ Mosquitto MQTT broker setup
+4. ✅ Python/Node.js environment setup
+5. ✅ Database initialization
+6. ✅ Auto-start on boot configuration
+7. ✅ Cross-platform support (also macOS and Windows install scripts)
+8. ✅ Comprehensive deployment documentation (`docs/DEPLOYMENT.md`)
+9. ✅ Getting started guide (`GETTING_STARTED.md`)
 
-**Status:** Analysis complete, ready to execute
+**Status:** Ready for production deployment when hardware arrives
 
 ---
 
 ## 🧪 Testing & Quality
 
 ### R. Automated Testing
-**Status:** Planned  
+**Status:** ✅ COMPLETE (April 4, 2026)  
 **Priority:** Medium  
-**Effort:** 10 hours  
+**Effort:** 10 hours (actual: ~6 hours)  
 **Type:** Infrastructure
 
-**Test Coverage:**
-- Unit tests for optimization engine
-- API endpoint tests
-- Database query tests
-- MQTT communication tests
-- Frontend component tests
-- E2E tests for critical paths
+**Test Coverage Implemented:**
+- ✅ Unit tests for optimization engine (`backend/tests/test_optimization_engine.py`)
+- ✅ API endpoint tests (`backend/tests/test_api.py`)
+- ✅ Alert service tests (`backend/tests/test_alert_service.py`)
+- ✅ Frontend component tests (vitest setup with ThemeToggle, ComparisonPage tests)
+- ✅ pytest.ini configuration
+- ✅ vitest.config.ts configuration
 
-**Target:** 80% code coverage
+**Current Coverage:** Core functionality tested, expandable as needed
 
 ---
 
@@ -821,16 +1416,23 @@ Family AI assistant running alongside ThermIQ on Raspberry Pi.
 ## 🔐 Security
 
 ### V. MQTT Authentication
-**Status:** Planned  
+**Status:** ✅ IMPLEMENTED (April 4, 2026)  
 **Priority:** High (for production)  
-**Effort:** 2 hours  
+**Effort:** 2 hours (actual: already done)  
 **Type:** Security
 
-**Implementation:**
-- Enable Mosquitto authentication
-- Create device credentials
-- Update backend config
-- Test authentication flow
+**Implementation Complete:**
+- ✅ Backend supports username/password authentication (`mqtt_manager.py:38-50`)
+- ✅ Configuration via `config.yaml` or environment variables
+- ✅ Setup wizard includes auth configuration (`backend/app/api/setup.py`)
+- ✅ Documentation includes auth setup (`docs/MQTT_SETUP.md`)
+
+**To Enable in Production:**
+1. Set `allow_anonymous false` in `mosquitto.conf`
+2. Create password file: `mosquitto_passwd -c /etc/mosquitto/passwd thermiq`
+3. Add `password_file /etc/mosquitto/passwd` to mosquitto.conf
+4. Configure `MQTT_USER` and `MQTT_PASSWORD` environment variables
+5. Restart Mosquitto service
 
 ---
 
@@ -870,32 +1472,48 @@ Family AI assistant running alongside ThermIQ on Raspberry Pi.
 | Energy Dashboard | 6h | 4h | April 3, 2026 |
 | Enhanced Temp Chart | 3h | 2h | April 3, 2026 |
 | Performance Card | 4h | 2h | April 3, 2026 |
+| Smart Alerts | 7h | 4h | April 3, 2026 |
+| Weather Integration | 5h | 3h | April 3, 2026 |
+| User Documentation | 8h | 6h | April 3, 2026 |
+| Comparison View | 4h | 3h | April 4, 2026 |
+| Automated Testing | 10h | 6h | April 4, 2026 |
+| Raspberry Pi Deployment | 4h | 4h | April 4, 2026 |
+| MQTT Authentication | 2h | 0h | Already implemented |
+| Hot Water Intelligence | 5h | 5h | Sprint 4 |
+| Dark Mode | 4h | 4h | Sprint 4 |
 
-### High Priority (Do First)
+### 🔥 High Priority (Do First)
 | Feature | Effort | Quick Win | Blocked By |
 |---------|--------|-----------|------------|
-| Smart Alerts | 7h | | None |
-| Weather Integration | 5h | | None |
+| **DHW Phase 1 (MVP)** | **16h** | | None |
+| - Cost-Aware Scheduling | 5h | ✓ | None |
+| - Safety Compliance (Legionella) | 4h | ✓ | None |
+| - Basic User Profiles | 4h | ✓ | None |
+| - Failure Detection & Alerts | 3h | ✓ | None |
+| **DHW Phase 2 (Learning)** | **18h** | | Phase 1 |
+| - Smart Learning Mode | 8h | | Phase 1 |
+| - Space Heating Integration | 6h | | Phase 1 |
+| - Usage Insights Dashboard | 4h | | Phase 1 |
 | Real Device Connection | 8h | | Hardware delivery |
-| Raspberry Pi Deployment | 4h | | Pi hardware |
+| Mobile PWA | 8h | | None |
 
 ### Medium Priority (Do Next)
 | Feature | Effort | Quick Win | Blocked By |
 |---------|--------|-----------|------------|
-| Comparison View | 4h | | None |
+| HTTPS/TLS Setup Guide | 2h | | None |
+| API Rate Limiting | 3h | | None |
 | Database Enhancements | 2h | | None |
 | API Endpoints | 3h | | Database |
 | Background Jobs | 3h | | Database |
-| User Documentation | 8h | | None |
+| Responsive Improvements | 3h | | None |
+| Performance Optimization | 4h | | None |
 
 ### Low Priority (Nice to Have)
 | Feature | Effort | Quick Win | Blocked By |
 |---------|--------|-----------|------------|
-| Hot Water Intelligence | 5h | | None |
-| Dark Mode | 4h | | None |
-| Mobile PWA | 8h | | None |
 | OpenClaw Integration | 15h | | None |
-| Automated Testing | 10h | | None |
+| Nord Pool Historical Import | 2h | | None |
+| API Documentation Improvements | 3h | | None |
 
 ---
 
@@ -913,7 +1531,7 @@ Family AI assistant running alongside ThermIQ on Raspberry Pi.
 **Status:** ✅ COMPLETE  
 **Value Delivered:** Significant UI improvements, energy tracking, real-time analytics
 
-### ✅ Sprint 2: Intelligence (COMPLETE - April 3, 2026)
+### ✅ Sprint 2: Intelligence & Documentation (COMPLETE - April 3, 2026)
 - [x] Smart alerts system (7h → 4h actual)
   - [x] Database schema (alerts, performance_metrics tables)
   - [x] Alert evaluation service (5 alert types: efficiency, comfort, price_opportunity, maintenance, system_error)
@@ -942,26 +1560,63 @@ Family AI assistant running alongside ThermIQ on Raspberry Pi.
 **Status:** ✅ COMPLETE  
 **Value Delivered:** Proactive monitoring, weather-aware optimization potential, comprehensive documentation
 
-### Sprint 3: Polish & Deploy (1 week)
-- [ ] Raspberry Pi deployment (4h)
-- [ ] User documentation (8h)
-- [ ] Comparison view (4h)
-- [ ] Security hardening (4h)
+### ✅ Sprint 3: Testing & Deployment (COMPLETE - April 4, 2026)
+- [x] Comparison view (4h → 3h actual)
+  - [x] Backend API (`/api/compare/week`, `/api/compare/month`, `/api/compare/daily`)
+  - [x] Frontend ComparisonPage with charts
+  - [x] Week-over-week and month-over-month comparisons
+  - [x] Test coverage for comparison functionality
+- [x] Automated testing (10h → 6h actual)
+  - [x] pytest setup with backend tests
+  - [x] vitest setup with frontend tests
+  - [x] Test coverage for core features
+- [x] Raspberry Pi deployment (4h → 4h actual)
+  - [x] Automated install script
+  - [x] systemd services configuration
+  - [x] Cross-platform deployment (Pi/macOS/Windows)
+- [x] MQTT authentication (2h → already implemented)
+  - [x] Support built into backend
+  - [x] Configuration via setup wizard
+  - [x] Documentation complete
 
-**Total:** 20 hours  
-**Value:** Production-ready system
+**Total:** 20 hours estimated, 13 hours actual  
+**Status:** ✅ COMPLETE  
+**Value Delivered:** Production-ready system with testing, deployment automation, and security
 
-### Sprint 4: User Experience (2 weeks) ✅ COMPLETE
-- [x] Hot water intelligence (5h) ✅
+### Sprint 4: User Experience (PARTIAL - April 4, 2026)
+- [x] Hot water intelligence (5h - basic implementation) ✅
 - [x] Dark mode (4h) ✅
+- [x] NetAtmo integration infrastructure (8h) ✅ - OAuth2 pending
 - [ ] Mobile PWA (8h)
-- [ ] Automated testing (10h)
 - [ ] OpenClaw planning (3h)
+- [ ] Additional HTTPS/TLS setup guide (2h) - optional for remote access
+- [ ] API rate limiting (3h) - optional enhancement
 
-**Total:** 30 hours (9h completed)
-**Value:** Complete feature set
+**Total:** 33 hours (17h completed, 16h remaining)
+**Value:** Enhanced user experience and production hardening
 
-### Sprint 5: Real Hardware (when device arrives)
+### ⭐ Sprint 5: Hot Water Intelligence (APPROVED - 34 hours)
+
+#### Phase 1: Must Have (MVP) - 16 hours
+- [ ] Cost-aware scheduling with Nord Pool integration (5h)
+- [ ] Safety compliance & legionella prevention (4h)
+- [ ] Basic user profiles (Family/Couple/Single/Custom) (4h)
+- [ ] Failure detection & critical alerts (3h)
+
+**Value:** 30-50% DHW cost reduction + legal compliance + safety
+
+#### Phase 2: Should Have - 18 hours
+- [ ] Smart learning mode (pattern detection) (8h)
+- [ ] Space heating coordination (avoid conflicts) (6h)
+- [ ] Usage insights dashboard (analytics) (4h)
+
+**Value:** Zero-effort optimization + system-wide efficiency + visibility
+
+**Status:** Ready to start  
+**Dependencies:** None (builds on existing infrastructure)  
+**Expected Completion:** 1 week (full-time) or 2 weeks (part-time)
+
+### Sprint 6: Real Hardware (when device arrives)
 - [ ] Physical device setup (8h)
 - [ ] Calibration and tuning (ongoing)
 - [ ] Optimization refinement (4h)
@@ -1011,6 +1666,7 @@ Family AI assistant running alongside ThermIQ on Raspberry Pi.
 
 ---
 
-**Last Updated:** April 3, 2026  
-**Status:** Backlog created, ready for prioritization  
-**Next Review:** After Sprint 1 completion
+**Last Updated:** April 4, 2026  
+**Status:** Sprints 1-3 complete! Sprint 4 partial (17/33h). Sprint 5 (DHW Intelligence Phase 1 & 2) ready to start - 34 hours approved.  
+**Next:** Hot Water Intelligence expansion (cost optimization, learning, coordination) OR Real hardware connection when device arrives.  
+**Ready for:** Production deployment with enhanced DHW features

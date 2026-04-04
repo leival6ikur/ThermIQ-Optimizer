@@ -51,6 +51,17 @@ export const InsightsPage: React.FC = () => {
           const historyData = await historyRes.json();
           if (historyData.temperatures && historyData.temperatures.length > 0) {
             setTemperatureHistory(historyData.temperatures);
+            // Extract power history from temperature readings
+            const powerData = historyData.temperatures
+              .filter((t: any) => t.power != null)
+              .map((t: any) => ({
+                timestamp: t.timestamp,
+                power: t.power,
+                heating: t.heating || false,
+              }));
+            if (powerData.length > 0) {
+              setPowerHistory(powerData);
+            }
           }
         }
 
@@ -193,9 +204,15 @@ export const InsightsPage: React.FC = () => {
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">System Insights</h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Advanced analytics and performance metrics</p>
+            <div className="flex items-center gap-4">
+              {/* Logo - Click to go home */}
+              <a href="/" className="flex items-center transition-opacity hover:opacity-80" title="Thermi-Nator Home">
+                <img
+                  src="/logo_v3.svg"
+                  alt="Thermi-Nator"
+                  style={{ height: '67px', width: 'auto', objectFit: 'contain' }}
+                />
+              </a>
             </div>
             <div className="flex items-center gap-3">
               <ThemeToggle />

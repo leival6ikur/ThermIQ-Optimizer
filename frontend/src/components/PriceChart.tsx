@@ -15,15 +15,15 @@ interface PriceChartProps {
   prices: ElectricityPrice[];
   currentHour?: number;
   vatConfig?: VATConfig;
-  viewMode?: 'day' | 'rolling';
-  onViewModeChange?: (mode: 'day' | 'rolling') => void;
+  viewMode?: 'today' | 'tomorrow' | 'rolling';
+  onViewModeChange?: (mode: 'today' | 'tomorrow' | 'rolling') => void;
 }
 
 export const PriceChart: React.FC<PriceChartProps> = ({
   prices,
   currentHour: _currentHour,
   vatConfig,
-  viewMode = 'day',
+  viewMode = 'today',
   onViewModeChange,
 }) => {
   if (!prices || prices.length === 0) {
@@ -91,33 +91,48 @@ export const PriceChart: React.FC<PriceChartProps> = ({
       };
     });
   } else {
-    // Day view: show all prices for the day (00:00-23:59 in browser's local time)
-    // Deduplicate by hour first
+    // Today/Tomorrow view: show prices from 0:00-23:00 for the selected day
+    const now = new Date();
+    const targetDate = viewMode === 'tomorrow'
+      ? new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+      : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // Define boundaries for the target day (0:00 to 23:59:59 local time)
+    const dayStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0, 0);
+    const dayEnd = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999);
+
+    // Filter prices for the target day and deduplicate by hour
     const priceMap = new Map<number, any>();
     prices.forEach((price) => {
       // Parse UTC timestamp and convert to browser's local timezone
       const timestamp = new Date(price.timestamp);
-      const hour = timestamp.getHours(); // Gets local hour
-      if (!priceMap.has(hour)) {
-        priceMap.set(hour, {
-          hour: `${hour}:00`,
-          actualHour: hour,
-          price: Number((price.price / 10).toFixed(2)),
-          originalPrice: price.price,
-          timestamp: timestamp.getTime(),
-          isCurrent: false, // Will set after deduplication
-        });
+      const timestampTime = timestamp.getTime();
+
+      // Only include prices within the target day
+      if (timestampTime >= dayStart.getTime() && timestampTime <= dayEnd.getTime()) {
+        const hour = timestamp.getHours(); // Gets local hour
+        if (!priceMap.has(hour)) {
+          priceMap.set(hour, {
+            hour: `${hour}:00`,
+            actualHour: hour,
+            price: Number((price.price / 10).toFixed(2)),
+            originalPrice: price.price,
+            timestamp: timestampTime,
+            isCurrent: false, // Will set after deduplication
+          });
+        }
       }
     });
 
-    chartData = Array.from(priceMap.values()).sort((a, b) => a.timestamp - b.timestamp);
+    chartData = Array.from(priceMap.values()).sort((a, b) => a.actualHour - b.actualHour);
 
-    // Mark current hour after deduplication - use now.getHours() to ensure we have current time
-    const now = new Date();
-    const nowHour = now.getHours();
-    chartData.forEach(entry => {
-      entry.isCurrent = entry.actualHour === nowHour;
-    });
+    // Mark current hour only if viewing today
+    if (viewMode === 'today') {
+      const nowHour = now.getHours();
+      chartData.forEach(entry => {
+        entry.isCurrent = entry.actualHour === nowHour;
+      });
+    }
   }
 
   // Calculate percentiles for color coding (using converted prices)
@@ -136,25 +151,35 @@ export const PriceChart: React.FC<PriceChartProps> = ({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <h3 className="text-lg font-semibold">Electricity Prices{vatLabel}</h3>
-          {/* Day/Rolling Toggle */}
+          {/* Today/Tomorrow/Rolling Toggle */}
           {onViewModeChange && (
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
               <button
-                onClick={() => onViewModeChange('day')}
+                onClick={() => onViewModeChange('today')}
                 className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
-                  viewMode === 'day'
-                    ? 'bg-white text-primary shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                  viewMode === 'today'
+                    ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                 }`}
               >
-                Day View
+                Today
+              </button>
+              <button
+                onClick={() => onViewModeChange('tomorrow')}
+                className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                  viewMode === 'tomorrow'
+                    ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                Tomorrow
               </button>
               <button
                 onClick={() => onViewModeChange('rolling')}
                 className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
                   viewMode === 'rolling'
-                    ? 'bg-white text-primary shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                 }`}
               >
                 Rolling 24h

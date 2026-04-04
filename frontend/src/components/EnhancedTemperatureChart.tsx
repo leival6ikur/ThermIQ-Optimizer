@@ -7,9 +7,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  ReferenceArea,
   Area,
   ComposedChart,
-  Bar,
 } from 'recharts';
 import type { TemperatureReading, ElectricityPrice } from '../types/index.js';
 
@@ -32,27 +32,71 @@ export const EnhancedTemperatureChart: React.FC<EnhancedTemperatureChartProps> =
   const chartData = useMemo(() => {
     if (!temperatureData.length) return [];
 
-    return temperatureData.map((reading) => {
+    // Deduplicate temperature data by timestamp (keep most recent for each timestamp)
+    const uniqueDataMap = new Map<string, any>();
+    temperatureData.forEach(reading => {
+      const timestampKey = reading.timestamp;
+      // Keep the latest reading for each timestamp
+      uniqueDataMap.set(timestampKey, reading);
+    });
+    const uniqueData = Array.from(uniqueDataMap.values()).sort((a, b) =>
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    // First pass: collect all temperature values to find min
+    const allTemps: number[] = [];
+    uniqueData.forEach(reading => {
+      if (reading.indoor) allTemps.push(reading.indoor);
+      if (reading.outdoor) allTemps.push(reading.outdoor);
+    });
+    const minTemp = allTemps.length > 0 ? Math.min(...allTemps) : 0;
+    const heatingLineValue = minTemp - 1; // Position heating line 1°C below minimum temp
+
+    // Calculate price percentiles once
+    let p33 = 0;
+    let p66 = 0;
+    if (priceData.length > 0) {
+      const sortedPrices = priceData.map(p => p.price).sort((a, b) => a - b);
+      p33 = sortedPrices[Math.floor(sortedPrices.length * 0.33)];
+      p66 = sortedPrices[Math.floor(sortedPrices.length * 0.66)];
+      console.log('Price zones:', {
+        totalPrices: priceData.length,
+        p33: p33.toFixed(2),
+        p66: p66.toFixed(2),
+        min: sortedPrices[0].toFixed(2),
+        max: sortedPrices[sortedPrices.length - 1].toFixed(2)
+      });
+    }
+
+    // Create price map by hour for quick lookup
+    const priceByHour = new Map<number, number>();
+    priceData.forEach(p => {
+      const hour = new Date(p.timestamp).getHours();
+      priceByHour.set(hour, p.price);
+    });
+    console.log('Price by hour map size:', priceByHour.size);
+
+    let zoneDebugCount = 0;
+    return uniqueData.map((reading, idx) => {
       const timestamp = new Date(reading.timestamp);
       const time = timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
       // Find corresponding price
       const hour = timestamp.getHours();
-      const matchingPrice = priceData.find(p => {
-        const priceHour = new Date(p.timestamp).getHours();
-        return priceHour === hour;
-      });
+      const priceForHour = priceByHour.get(hour);
 
       // Determine price zone (for background color)
       let priceZone = 0; // 0 = no data, 1 = cheap, 2 = medium, 3 = expensive
-      if (matchingPrice && priceData.length > 0) {
-        const prices = priceData.map(p => p.price).sort((a, b) => a - b);
-        const p33 = prices[Math.floor(prices.length * 0.33)];
-        const p66 = prices[Math.floor(prices.length * 0.66)];
-
-        if (matchingPrice.price < p33) priceZone = 1;
-        else if (matchingPrice.price < p66) priceZone = 2;
+      if (priceForHour !== undefined) {
+        if (priceForHour < p33) priceZone = 1;
+        else if (priceForHour < p66) priceZone = 2;
         else priceZone = 3;
+
+        // Debug first few and some samples
+        if (zoneDebugCount < 3 || (idx % 50 === 0 && zoneDebugCount < 10)) {
+          console.log(`Hour ${hour}: price=${priceForHour.toFixed(2)}, zone=${priceZone} (p33=${p33.toFixed(2)}, p66=${p66.toFixed(2)})`);
+          zoneDebugCount++;
+        }
       }
 
       // Estimate if heating was active (simplified: supply temp significantly higher than return)
@@ -70,7 +114,7 @@ export const EnhancedTemperatureChart: React.FC<EnhancedTemperatureChartProps> =
         comfortMax: targetTemp + 0.5,
         priceZone,
         isHeating: isHeating ? 1 : 0,
-        heatingIndicator: isHeating ? 30 : null, // For bar chart overlay
+        heatingLine: isHeating ? heatingLineValue : null, // Bold line near bottom when heating
       };
     });
   }, [temperatureData, priceData, targetTemp]);
@@ -134,10 +178,65 @@ export const EnhancedTemperatureChart: React.FC<EnhancedTemperatureChartProps> =
     );
   }
 
-  // Sample data points for X-axis (show every 4 hours)
-  const xAxisTicks = chartData
-    .filter((_, index) => index % (4 * 60) === 0) // Assuming 1-minute intervals
-    .map(d => d.timestamp);
+  // Calculate X-axis ticks to show clean hour marks (00:00, 01:00, etc.)
+  const xAxisTicks: number[] = [];
+  if (chartData.length > 0) {
+    const firstTimestamp = chartData[0].timestamp;
+    const lastTimestamp = chartData[chartData.length - 1].timestamp;
+    const firstDate = new Date(firstTimestamp);
+
+    // Start from the first full hour
+    const startHour = new Date(firstDate);
+    startHour.setMinutes(0, 0, 0);
+    if (startHour.getTime() < firstTimestamp) {
+      startHour.setHours(startHour.getHours() + 1);
+    }
+
+    // Generate hourly ticks
+    let currentTick = startHour.getTime();
+    while (currentTick <= lastTimestamp) {
+      xAxisTicks.push(currentTick);
+      currentTick += 60 * 60 * 1000; // Add 1 hour
+    }
+  }
+
+  // Show dots only if we have fewer than 100 data points (otherwise too cluttered)
+  const showDots = chartData.length < 100;
+
+  // Group consecutive price zones for ReferenceArea rendering
+  const priceZoneGroups: Array<{ zone: number; x1: number; x2: number }> = [];
+  if (showPriceZones && chartData.length > 0) {
+    let currentZone = chartData[0].priceZone;
+    let zoneStart = chartData[0].timestamp;
+
+    for (let i = 1; i < chartData.length; i++) {
+      const point = chartData[i];
+
+      // If zone changed or it's the last point
+      if (point.priceZone !== currentZone || i === chartData.length - 1) {
+        if (currentZone > 0) {
+          priceZoneGroups.push({
+            zone: currentZone,
+            x1: zoneStart,
+            x2: i === chartData.length - 1 ? point.timestamp : chartData[i - 1].timestamp
+          });
+        }
+        currentZone = point.priceZone;
+        zoneStart = point.timestamp;
+      }
+    }
+
+    // Add the last zone if it exists
+    if (currentZone > 0) {
+      priceZoneGroups.push({
+        zone: currentZone,
+        x1: zoneStart,
+        x2: chartData[chartData.length - 1].timestamp
+      });
+    }
+
+    console.log('Price zone groups:', priceZoneGroups.length, priceZoneGroups.slice(0, 5));
+  }
 
   return (
     <div className="space-y-4">
@@ -200,16 +299,38 @@ export const EnhancedTemperatureChart: React.FC<EnhancedTemperatureChartProps> =
           />
 
           <YAxis
+            yAxisId="temp"
             domain={['dataMin - 2', 'dataMax + 2']}
             stroke="#6b7280"
             style={{ fontSize: '12px' }}
             label={{ value: '°C', angle: -90, position: 'insideLeft' }}
+            tickFormatter={(value) => Math.round(value).toString()}
           />
 
           <Tooltip content={<CustomTooltip />} />
 
+          {/* Price zone backgrounds using ReferenceArea */}
+          {priceZoneGroups.map((group, index) => {
+            const color = group.zone === 1 ? '#10b981' : // green
+                         group.zone === 2 ? '#f59e0b' : // yellow
+                         '#ef4444'; // red
+
+            return (
+              <ReferenceArea
+                key={`price-zone-${index}`}
+                x1={group.x1}
+                x2={group.x2}
+                yAxisId="temp"
+                fill={color}
+                fillOpacity={0.15}
+                ifOverflow="extendDomain"
+              />
+            );
+          })}
+
           {/* Comfort zone band */}
           <Area
+            yAxisId="temp"
             type="monotone"
             dataKey="comfortMax"
             stroke="none"
@@ -217,6 +338,7 @@ export const EnhancedTemperatureChart: React.FC<EnhancedTemperatureChartProps> =
             fillOpacity={1}
           />
           <Area
+            yAxisId="temp"
             type="monotone"
             dataKey="comfortMin"
             stroke="none"
@@ -224,34 +346,43 @@ export const EnhancedTemperatureChart: React.FC<EnhancedTemperatureChartProps> =
             fillOpacity={1}
           />
 
-          {/* Heating periods (bars) */}
+          {/* Heating periods indicator - bold line at bottom */}
           {showHeatingPeriods && (
-            <Bar
-              dataKey="heatingIndicator"
-              fill="#fb923c"
-              fillOpacity={0.3}
-              barSize={10}
+            <Line
+              yAxisId="temp"
+              type="stepAfter"
+              dataKey="heatingLine"
+              stroke="#fb923c"
+              strokeWidth={4}
+              dot={false}
+              name="Heating"
+              isAnimationActive={false}
             />
           )}
 
           {/* Temperature lines */}
           <Line
+            yAxisId="temp"
             type="monotone"
             dataKey="indoor"
             stroke="#3b82f6"
             strokeWidth={2}
-            dot={false}
+            dot={showDots ? { fill: '#3b82f6', r: 2 } : false}
             name="Indoor"
+            connectNulls={true}
           />
           <Line
+            yAxisId="temp"
             type="monotone"
             dataKey="outdoor"
             stroke="#9ca3af"
             strokeWidth={1.5}
-            dot={false}
+            dot={showDots ? { fill: '#9ca3af', r: 1.5 } : false}
             name="Outdoor"
+            connectNulls={true}
           />
           <Line
+            yAxisId="temp"
             type="monotone"
             dataKey="target"
             stroke="#10b981"
@@ -259,20 +390,23 @@ export const EnhancedTemperatureChart: React.FC<EnhancedTemperatureChartProps> =
             strokeDasharray="5 5"
             dot={false}
             name="Target"
+            connectNulls={true}
           />
 
           {/* Reference lines for comfort zone */}
-          <ReferenceLine y={targetTemp + 0.5} stroke="#10b981" strokeDasharray="3 3" />
-          <ReferenceLine y={targetTemp - 0.5} stroke="#10b981" strokeDasharray="3 3" />
+          <ReferenceLine yAxisId="temp" y={targetTemp + 0.5} stroke="#10b981" strokeDasharray="3 3" />
+          <ReferenceLine yAxisId="temp" y={targetTemp - 0.5} stroke="#10b981" strokeDasharray="3 3" />
         </ComposedChart>
       </ResponsiveContainer>
 
       {/* Info text */}
-      <div className="text-xs text-gray-600 space-y-1">
+      <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
         <p>• <strong>Green dashed lines:</strong> Comfort zone (target ±0.5°C)</p>
         {showPriceZones && <p>• <strong>Background colors:</strong> Green = cheap electricity, Yellow = medium, Red = expensive</p>}
-        {showHeatingPeriods && <p>• <strong>Orange bars:</strong> Heating periods detected</p>}
-        <p>• <strong>Hover</strong> over chart to see detailed values</p>
+        {showHeatingPeriods && <p>• <strong>Orange line at bottom:</strong> Heating periods detected</p>}
+        {showDots && <p>• <strong>Dots:</strong> Show actual data collection points</p>}
+        <p>• <strong>Hover</strong> over chart to see detailed values. Gaps indicate no data collected during those times.</p>
+        <p className="text-gray-500 dark:text-gray-500">Data collected at irregular intervals. Showing {chartData.length} unique readings.</p>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 """
-API Routes for ThermIQ Backend
+API Routes for Thermi-Nator Backend
 """
 import logging
 from datetime import datetime, timedelta, date
@@ -71,6 +71,128 @@ async def get_status():
 
     except Exception as e:
         logger.error(f"Error getting status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/config/location")
+async def get_location_config():
+    """Get location configuration"""
+    try:
+        config = get_config()
+        location = config.location
+        return {
+            "address": location.get("address", ""),
+            "latitude": location.get("latitude", 0),
+            "longitude": location.get("longitude", 0),
+            "timezone": location.get("timezone", "UTC"),
+        }
+    except Exception as e:
+        logger.error(f"Error getting location config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/weather/current")
+async def get_current_weather():
+    """Get current weather conditions at configured location"""
+    try:
+        weather_service = get_weather_service()
+        if not weather_service:
+            raise HTTPException(
+                status_code=503,
+                detail="Weather service not configured. Enable it in config and provide API key and location."
+            )
+
+        weather = await weather_service.get_current_weather()
+        if not weather:
+            raise HTTPException(status_code=503, detail="Failed to fetch weather data")
+
+        return weather
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting current weather: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/weather/forecast")
+async def get_weather_forecast(hours: int = 48):
+    """
+    Get weather forecast for next N hours.
+
+    Args:
+        hours: Number of hours to forecast (default 48, max 120)
+    """
+    try:
+        if hours > 120:
+            raise HTTPException(status_code=400, detail="Maximum 120 hours forecast")
+
+        weather_service = get_weather_service()
+        if not weather_service:
+            raise HTTPException(
+                status_code=503,
+                detail="Weather service not configured. Enable it in config and provide API key and location."
+            )
+
+        forecasts = await weather_service.get_forecast(hours)
+
+        # Convert to dict format
+        result = []
+        for f in forecasts:
+            result.append({
+                'timestamp': f.timestamp.isoformat(),
+                'temperature': f.temperature,
+                'feels_like': f.feels_like,
+                'humidity': f.humidity,
+                'wind_speed': f.wind_speed,
+                'clouds': f.clouds,
+                'description': f.description,
+                'icon': f.icon
+            })
+
+        return {
+            'location': get_config().location.get('address', 'Unknown'),
+            'forecast_hours': hours,
+            'count': len(result),
+            'forecasts': result
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting weather forecast: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/weather/heating-load")
+async def get_heating_load_forecast(hours: int = 48):
+    """
+    Get heating load forecast based on weather predictions.
+
+    Args:
+        hours: Number of hours to forecast (default 48, max 120)
+    """
+    try:
+        if hours > 120:
+            raise HTTPException(status_code=400, detail="Maximum 120 hours forecast")
+
+        weather_service = get_weather_service()
+        if not weather_service:
+            raise HTTPException(
+                status_code=503,
+                detail="Weather service not configured. Enable it in config and provide API key and location."
+            )
+
+        heating_loads = await weather_service.get_heating_load_forecast(hours)
+
+        return {
+            'location': get_config().location.get('address', 'Unknown'),
+            'forecast_hours': hours,
+            'count': len(heating_loads),
+            'heating_loads': heating_loads
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting heating load forecast: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -286,6 +408,128 @@ async def get_past_schedule():
 
     except Exception as e:
         logger.error(f"Error getting past schedule: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/schedule/toggle")
+async def toggle_schedule_hour(hour: int, should_heat: bool, target_date: Optional[str] = None):
+    """
+    Toggle heating for a specific hour in the schedule.
+
+    Args:
+        hour: Hour of the day (0-23)
+        should_heat: Whether heating should be on for this hour
+        target_date: Optional date in format YYYY-MM-DD (defaults to today)
+    """
+    try:
+        if hour < 0 or hour > 23:
+            raise HTTPException(status_code=400, detail="Hour must be between 0 and 23")
+
+        db = await get_database()
+
+        if target_date:
+            try:
+                target = datetime.strptime(target_date, '%Y-%m-%d').date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        else:
+            target = date.today()
+
+        # Get existing schedule
+        schedule = await db.get_heating_schedule(target.isoformat())
+
+        # Find the hour to update
+        hour_entry = next((s for s in schedule if s.hour == hour), None)
+
+        if not hour_entry:
+            raise HTTPException(status_code=404, detail=f"Schedule entry for hour {hour} not found")
+
+        # Update the schedule in database
+        await db.update_heating_schedule_hour(target.isoformat(), hour, should_heat)
+
+        logger.info(f"Toggled schedule for {target.isoformat()} hour {hour} to {should_heat}")
+
+        return {
+            "success": True,
+            "date": target.isoformat(),
+            "hour": hour,
+            "should_heat": should_heat,
+            "message": f"Hour {hour}:00 set to {'ON' if should_heat else 'OFF'}"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error toggling schedule hour: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/schedule/reset")
+async def reset_schedule(target_date: Optional[str] = None):
+    """
+    Reset heating schedule to optimized recommendations.
+
+    Recalculates the heating schedule based on current prices and optimization settings,
+    effectively undoing any manual toggles.
+
+    Args:
+        target_date: Optional date in format YYYY-MM-DD (defaults to today)
+    """
+    try:
+        db = await get_database()
+
+        if target_date:
+            try:
+                target = datetime.strptime(target_date, '%Y-%m-%d').date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        else:
+            target = date.today()
+
+        # Get prices for the target date
+        start = datetime.combine(target, datetime.min.time())
+        end = start + timedelta(days=1)
+        prices = await db.get_electricity_prices(start, end)
+
+        if not prices:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No price data available for {target.isoformat()}. Cannot calculate schedule."
+            )
+
+        # Get current temperature if recalculating today's schedule
+        current_temp = None
+        if target == date.today():
+            mqtt = get_mqtt_manager()
+            current_temp_reading = mqtt.get_latest_temperature()
+            current_temp = current_temp_reading.indoor if current_temp_reading else None
+
+        # Calculate optimized schedule
+        engine = get_optimization_engine()
+        schedule = engine.calculate_schedule(prices, current_temp)
+
+        if not schedule:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to calculate optimized schedule"
+            )
+
+        # Save the new schedule (this will overwrite manual changes)
+        await db.save_heating_schedule(target.isoformat(), schedule)
+
+        logger.info(f"Reset heating schedule for {target.isoformat()} - recalculated {len(schedule)} hours")
+
+        return {
+            "success": True,
+            "date": target.isoformat(),
+            "hours_updated": len(schedule),
+            "message": f"Schedule reset to optimized recommendations for {target.isoformat()}"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error resetting schedule: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

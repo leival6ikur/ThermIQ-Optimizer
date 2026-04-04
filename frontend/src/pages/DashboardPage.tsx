@@ -32,7 +32,26 @@ export const DashboardPage: React.FC = () => {
   const [overrideIndefinite, setOverrideIndefinite] = useState(false);
   const [overrideMessage, setOverrideMessage] = useState<string | null>(null);
   const [manualOverrideActive, setManualOverrideActive] = useState(false);
-  const [priceViewMode, setPriceViewMode] = useState<'day' | 'rolling'>('day');
+  const [priceViewMode, setPriceViewMode] = useState<'today' | 'tomorrow' | 'rolling'>('today');
+  const [locationAddress, setLocationAddress] = useState<string>('');
+
+  // Fetch location configuration
+  useEffect(() => {
+    const fetchLocation = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/config/location');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.address) {
+            setLocationAddress(data.address);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching location:', err);
+      }
+    };
+    fetchLocation();
+  }, []);
 
   // Fetch initial data including past 60min for graphs
   useEffect(() => {
@@ -355,8 +374,74 @@ export const DashboardPage: React.FC = () => {
   };
 
   const handleToggleHour = async (hour: number, shouldHeat: boolean) => {
-    // TODO: Implement per-hour toggle API
-    console.log(`Toggle hour ${hour} to ${shouldHeat ? 'ON' : 'OFF'}`);
+    try {
+      const response = await fetch(
+        `http://localhost:8000/api/schedule/toggle?hour=${hour}&should_heat=${shouldHeat}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to toggle hour:', errorData);
+        setError(`Failed to toggle schedule: ${errorData.detail || 'Unknown error'}`);
+        return;
+      }
+
+      const result = await response.json();
+      console.log('Schedule toggled:', result);
+
+      // Refresh the schedule to show updated data
+      const scheduleRes = await fetch('http://localhost:8000/api/schedule');
+      if (scheduleRes.ok) {
+        setSchedule(await scheduleRes.json());
+      }
+
+    } catch (err) {
+      console.error('Error toggling hour:', err);
+      setError('Failed to toggle schedule hour');
+    }
+  };
+
+  const handleResetSchedule = async () => {
+    try {
+      const response = await fetch(
+        'http://localhost:8000/api/schedule/reset',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to reset schedule:', errorData);
+        setError(`Failed to reset schedule: ${errorData.detail || 'Unknown error'}`);
+        return;
+      }
+
+      const result = await response.json();
+      console.log('Schedule reset:', result);
+
+      // Refresh the schedule to show updated data
+      const scheduleRes = await fetch('http://localhost:8000/api/schedule');
+      if (scheduleRes.ok) {
+        setSchedule(await scheduleRes.json());
+      }
+
+      // Clear any error messages
+      setError(null);
+
+    } catch (err) {
+      console.error('Error resetting schedule:', err);
+      setError('Failed to reset schedule');
+    }
   };
 
   return (
@@ -365,9 +450,18 @@ export const DashboardPage: React.FC = () => {
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">ThermIQ Optimizer</h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Sirkli 6, Lombi küla, Tartu vald</p>
+            <div className="flex items-center gap-4">
+              {/* Logo - Click to go home */}
+              <a href="/" className="flex items-center transition-opacity hover:opacity-80" title="Thermi-Nator Home">
+                <img
+                  src="/logo_v3.svg"
+                  alt="Thermi-Nator"
+                  style={{ height: '67px', width: 'auto', objectFit: 'contain' }}
+                />
+              </a>
+              {locationAddress && (
+                <p className="text-sm text-gray-600 dark:text-gray-400">{locationAddress}</p>
+              )}
             </div>
             <div className="flex items-center gap-4">
               {/* System Status */}
@@ -428,6 +522,12 @@ export const DashboardPage: React.FC = () => {
                   className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 transition-colors"
                 >
                   📊 Insights
+                </a>
+                <a
+                  href="/comparison"
+                  className="px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
+                >
+                  📈 Compare
                 </a>
                 <a
                   href="/settings"
@@ -593,7 +693,7 @@ export const DashboardPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <TemperatureChart data={temperatureHistory} />
           <PriceChart
-            prices={priceViewMode === 'day' ? dayPrices : rollingPrices}
+            prices={rollingPrices}
             currentHour={currentHour}
             vatConfig={vatConfig}
             viewMode={priceViewMode}
@@ -606,6 +706,7 @@ export const DashboardPage: React.FC = () => {
           schedule={schedule}
           currentHour={currentHour}
           onToggleHour={handleToggleHour}
+          onResetSchedule={handleResetSchedule}
           manualOverride={manualOverrideActive}
           vatConfig={vatConfig}
         />

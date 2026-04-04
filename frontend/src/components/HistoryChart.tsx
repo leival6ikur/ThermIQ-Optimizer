@@ -231,6 +231,7 @@ export const HistoryChart: React.FC<HistoryChartProps> = ({ hours = 24 }) => {
             style={{ fontSize: '11px' }}
             label={{ value: 'Temperature (°C)', angle: -90, position: 'insideLeft' }}
             domain={['dataMin - 5', 'dataMax + 5']}
+            tickFormatter={(value) => Math.round(value).toString()}
           />
 
           {/* Right Y-Axis: Price (¢/kWh) */}
@@ -239,7 +240,7 @@ export const HistoryChart: React.FC<HistoryChartProps> = ({ hours = 24 }) => {
             orientation="right"
             stroke="#6b7280"
             style={{ fontSize: '11px' }}
-            label={{ value: `Price${vatLabel} (¢/kWh)`, angle: 90, position: 'insideRight' }}
+            label={{ value: `¢/kWh${vatLabel}`, angle: 90, position: 'insideRight' }}
           />
 
           <Tooltip

@@ -8,6 +8,7 @@ interface ScheduleTimelineProps {
 
 interface ScheduleTimelinePropsExtended extends ScheduleTimelineProps {
   onToggleHour?: (hour: number, shouldHeat: boolean) => void;
+  onResetSchedule?: () => void;
   manualOverride?: boolean;
   vatConfig?: VATConfig;
 }
@@ -28,6 +29,7 @@ export const ScheduleTimeline: React.FC<ScheduleTimelinePropsExtended> = ({
   schedule,
   currentHour,
   onToggleHour,
+  onResetSchedule,
   manualOverride = false,
   vatConfig,
 }) => {
@@ -93,13 +95,13 @@ export const ScheduleTimeline: React.FC<ScheduleTimelinePropsExtended> = ({
         <div className="flex items-center gap-3">
           <h3 className="text-lg font-semibold">Heating Schedule</h3>
           {/* Past/Future Toggle */}
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
             <button
               onClick={() => setShowPast(false)}
               className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
                 !showPast
-                  ? 'bg-white text-primary shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
               Next 24h
@@ -108,13 +110,23 @@ export const ScheduleTimeline: React.FC<ScheduleTimelinePropsExtended> = ({
               onClick={() => setShowPast(true)}
               className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
                 showPast
-                  ? 'bg-white text-primary shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
               Past 24h
             </button>
           </div>
+          {/* Reset Schedule Button */}
+          {onResetSchedule && !showPast && (
+            <button
+              onClick={onResetSchedule}
+              className="px-3 py-1 text-sm font-medium rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors shadow-sm"
+              title="Reset to optimized schedule"
+            >
+              🔄 Reset Schedule
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-4">
           {manualOverride && (

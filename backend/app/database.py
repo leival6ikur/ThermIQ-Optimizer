@@ -1,5 +1,5 @@
 """
-Database management for ThermIQ
+Database management for Thermi-Nator
 """
 import aiosqlite
 import logging
@@ -377,6 +377,8 @@ class Database:
                             brine_in=row["brine_in"] if "brine_in" in row.keys() else None,
                             brine_out=row["brine_out"] if "brine_out" in row.keys() else None,
                             hot_water=row["hot_water"] if "hot_water" in row.keys() else None,
+                            power=row["power"] if "power" in row.keys() else None,
+                            heating=row["heating"] if "heating" in row.keys() else None,
                         )
                         for row in rows
                     ]
@@ -404,6 +406,8 @@ class Database:
                             brine_in=row["brine_in_avg"],
                             brine_out=row["brine_out_avg"],
                             hot_water=row["hot_water_avg"],
+                            power=row.get("power_avg"),
+                            heating=row.get("heating_avg"),
                         ))
 
                 # Get raw data for recent period
@@ -427,6 +431,8 @@ class Database:
                             brine_in=row.get("brine_in"),
                             brine_out=row.get("brine_out"),
                             hot_water=row.get("hot_water"),
+                            power=row.get("power"),
+                            heating=row.get("heating"),
                         ))
 
         return results
@@ -477,6 +483,19 @@ class Database:
                     )
                     for row in rows
                 ]
+
+    async def update_heating_schedule_hour(self, schedule_date: str, hour: int, should_heat: bool) -> None:
+        """Update should_heat status for a specific hour in the heating schedule"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                """
+                UPDATE heating_schedules
+                SET should_heat = ?
+                WHERE schedule_date = ? AND hour = ?
+                """,
+                (should_heat, schedule_date, hour),
+            )
+            await db.commit()
 
     async def cleanup_old_data(self, days: int = 30) -> None:
         """Delete data older than specified days"""

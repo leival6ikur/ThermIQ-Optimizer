@@ -35,6 +35,7 @@ class Database:
                 CREATE TABLE IF NOT EXISTS temperature_readings (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp DATETIME NOT NULL,
+                    source TEXT DEFAULT 'heat_pump',
                     indoor REAL,
                     outdoor REAL,
                     supply REAL,
@@ -221,20 +222,34 @@ class Database:
                 "CREATE INDEX IF NOT EXISTS idx_hot_water_start ON hot_water_events(start_time)"
             )
 
+            # Migration: Add source column to temperature_readings if it doesn't exist
+            try:
+                await db.execute("""
+                    ALTER TABLE temperature_readings
+                    ADD COLUMN source TEXT DEFAULT 'heat_pump'
+                """)
+                logger.info("Added 'source' column to temperature_readings table")
+            except aiosqlite.OperationalError as e:
+                if "duplicate column" in str(e).lower():
+                    logger.debug("Column 'source' already exists in temperature_readings")
+                else:
+                    raise
+
             await db.commit()
             logger.info("Database initialized successfully")
 
-    async def save_temperature(self, reading: TemperatureReading) -> None:
+    async def save_temperature(self, reading: TemperatureReading, source: str = 'heat_pump') -> None:
         """Save temperature reading"""
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute(
                 """
                 INSERT INTO temperature_readings
-                (timestamp, indoor, outdoor, supply, return_temp, target, brine_in, brine_out, hot_water)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (timestamp, source, indoor, outdoor, supply, return_temp, target, brine_in, brine_out, hot_water)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     reading.timestamp,
+                    source,
                     reading.indoor,
                     reading.outdoor,
                     reading.supply,

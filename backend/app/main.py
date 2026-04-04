@@ -1,7 +1,7 @@
 """
-ThermIQ Heat Pump Optimizer - Main Application
+Thermi-Nator Heat Pump Optimizer - Main Application
 
-FastAPI backend for ThermIQ smart heat pump control system.
+FastAPI backend for Thermi-Nator smart heat pump control system.
 """
 import logging
 import asyncio
@@ -14,6 +14,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.config import get_config
 from app.database import get_database
@@ -25,7 +27,9 @@ from app.services.broker_manager import get_broker_manager, check_system_mosquit
 from app.api.routes import router as api_router, fetch_and_store_prices
 from app.api.websocket import router as ws_router, register_mqtt_callbacks, set_event_loop
 from app.api.setup import router as setup_router
+from app.api.comparison import router as comparison_router
 from app.paths import get_paths_info
+from app.middleware.rate_limit import limiter
 
 
 # Configure logging
@@ -220,7 +224,7 @@ def save_status_reading(status):
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
-    logger.info("Starting ThermIQ Heat Pump Optimizer...")
+    logger.info("Starting Thermi-Nator Heat Pump Optimizer...")
 
     # Store event loop reference for WebSocket callbacks and database saves
     global _main_loop
@@ -292,6 +296,46 @@ async def lifespan(app: FastAPI):
         else:
             logger.info("Weather service disabled in configuration")
 
+        # Initialize NetAtmo service (if configured)
+        netatmo_config = config.get('netatmo', {})
+        if netatmo_config.get('enabled', False):
+            client_id = netatmo_config.get('client_id')
+            client_secret = netatmo_config.get('client_secret')
+            username = netatmo_config.get('username')
+            password = netatmo_config.get('password')
+
+            if all([client_id, client_secret, username, password]):
+                from app.services.netatmo_service import get_netatmo_service
+                netatmo_service = get_netatmo_service(client_id, client_secret, username, password)
+
+                if netatmo_service:
+                    logger.info("NetAtmo service initialized")
+
+                    # Start periodic polling task
+                    async def poll_netatmo():
+                        """Poll NetAtmo API periodically for temperature data"""
+                        while True:
+                            try:
+                                reading = await netatmo_service.get_current_temperature()
+                                if reading:
+                                    # Save to database with source='netatmo'
+                                    await db.save_temperature(reading, source='netatmo')
+                                    logger.debug("NetAtmo temperature data saved to database")
+                            except Exception as e:
+                                logger.error(f"NetAtmo polling error: {e}")
+
+                            interval = netatmo_config.get('polling_interval', 600)
+                            await asyncio.sleep(interval)
+
+                    asyncio.create_task(poll_netatmo())
+                    logger.info(f"NetAtmo polling task started (interval: {netatmo_config.get('polling_interval', 600)}s)")
+                else:
+                    logger.warning("NetAtmo service initialization failed")
+            else:
+                logger.warning("NetAtmo service enabled but missing credentials")
+        else:
+            logger.info("NetAtmo service disabled in configuration")
+
         # Fetch initial prices
         logger.info("Fetching initial prices...")
         await fetch_and_store_prices()
@@ -342,7 +386,7 @@ async def lifespan(app: FastAPI):
         )
         logger.info(f"Scheduled alert evaluation every {alert_interval} seconds")
 
-        logger.info("ThermIQ backend started successfully")
+        logger.info("Thermi-Nator backend started successfully")
 
     except Exception as e:
         logger.error(f"Error during startup: {e}")
@@ -351,7 +395,7 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    logger.info("Shutting down ThermIQ backend...")
+    logger.info("Shutting down Thermi-Nator backend...")
 
     try:
         # Stop scheduler
@@ -378,11 +422,16 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI application
 app = FastAPI(
-    title="ThermIQ Heat Pump Optimizer",
+    title="Thermi-Nator Heat Pump Optimizer",
     description="Smart heat pump control with Nord Pool price optimization",
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Configure rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+logger.info("Rate limiting enabled (100 req/min per IP)")
 
 # Configure CORS
 config = get_config()
@@ -399,6 +448,7 @@ app.add_middleware(
 # Include routers
 app.include_router(setup_router)
 app.include_router(api_router)
+app.include_router(comparison_router)
 app.include_router(ws_router)
 
 
@@ -426,7 +476,7 @@ async def check_setup_complete(request, call_next):
 async def root():
     """Root endpoint"""
     return {
-        "name": "ThermIQ Heat Pump Optimizer",
+        "name": "Thermi-Nator Heat Pump Optimizer",
         "version": "1.0.0",
         "status": "running",
         "docs": "/docs"

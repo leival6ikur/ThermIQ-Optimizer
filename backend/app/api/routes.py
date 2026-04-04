@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta, date
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Request
 from pydantic import BaseModel
 
 from app.models import (
@@ -24,6 +24,7 @@ from app.services.optimization_engine import get_optimization_engine
 from app.services.weather_service import get_weather_service
 from app.database import get_database
 from app.config import get_config
+from app.middleware.rate_limit import standard_limit, data_limit, write_limit
 
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,8 @@ class VATConfig(BaseModel):
 
 
 @router.get("/status", response_model=SystemStatus)
-async def get_status():
+@standard_limit
+async def get_status(request: Request):
     """Get current system status"""
     try:
         mqtt = get_mqtt_manager()
@@ -626,6 +628,105 @@ async def update_vat_config(vat_config: VATConfig):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/config/netatmo")
+async def get_netatmo_config():
+    """Get NetAtmo configuration (excluding sensitive credentials)"""
+    try:
+        config = get_config()
+        netatmo_config = config.get('netatmo', {})
+        sources_config = config.get('temperature_sources', {})
+
+        return {
+            "enabled": netatmo_config.get('enabled', False),
+            "station_name": netatmo_config.get('station_name', ''),
+            "polling_interval": netatmo_config.get('polling_interval', 600),
+            "outdoor_source": sources_config.get('outdoor_source', 'heat_pump'),
+            "indoor_source": sources_config.get('indoor_source', 'heat_pump'),
+            # Don't expose credentials to frontend for security
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting NetAtmo config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/config/netatmo")
+async def update_netatmo_config(netatmo_update: dict):
+    """Update NetAtmo configuration"""
+    try:
+        config = get_config()
+
+        # Update netatmo section (only non-credential fields from frontend)
+        if 'enabled' in netatmo_update:
+            config.set('netatmo.enabled', netatmo_update['enabled'])
+        if 'station_name' in netatmo_update:
+            config.set('netatmo.station_name', netatmo_update['station_name'])
+        if 'polling_interval' in netatmo_update:
+            config.set('netatmo.polling_interval', netatmo_update['polling_interval'])
+
+        # Update temperature_sources section
+        if 'outdoor_source' in netatmo_update:
+            config.set('temperature_sources.outdoor_source', netatmo_update['outdoor_source'])
+        if 'indoor_source' in netatmo_update:
+            config.set('temperature_sources.indoor_source', netatmo_update['indoor_source'])
+
+        # Update credentials if provided
+        if 'credentials' in netatmo_update:
+            creds = netatmo_update['credentials']
+            if 'client_id' in creds:
+                config.set('netatmo.client_id', creds['client_id'])
+            if 'client_secret' in creds:
+                config.set('netatmo.client_secret', creds['client_secret'])
+            if 'username' in creds:
+                config.set('netatmo.username', creds['username'])
+            if 'password' in creds:
+                config.set('netatmo.password', creds['password'])
+
+        config.save()
+
+        return {
+            "status": "success",
+            "message": "NetAtmo configuration updated. Please restart the backend for changes to take effect."
+        }
+
+    except Exception as e:
+        logger.error(f"Error updating NetAtmo config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/netatmo/test")
+async def test_netatmo_connection():
+    """Test NetAtmo connection with current credentials"""
+    try:
+        from app.services.netatmo_service import get_netatmo_service
+
+        config = get_config()
+        netatmo_config = config.get('netatmo', {})
+
+        # Get credentials from config
+        client_id = netatmo_config.get('client_id')
+        client_secret = netatmo_config.get('client_secret')
+        username = netatmo_config.get('username')
+        password = netatmo_config.get('password')
+
+        if not all([client_id, client_secret, username, password]):
+            return {"success": False, "message": "NetAtmo credentials not configured"}
+
+        # Try to get or create service
+        netatmo_service = get_netatmo_service(client_id, client_secret, username, password)
+
+        if not netatmo_service:
+            return {"success": False, "message": "NetAtmo service initialization failed"}
+
+        # Test connection
+        result = await netatmo_service.test_connection()
+        return result
+
+    except Exception as e:
+        logger.error(f"Error testing NetAtmo connection: {e}")
+        return {"success": False, "message": f"Connection test failed: {str(e)}"}
+
+
 @router.post("/prices/refresh")
 async def refresh_prices(background_tasks: BackgroundTasks):
     """Manually trigger price refresh"""
@@ -643,7 +744,9 @@ async def refresh_prices(background_tasks: BackgroundTasks):
 
 
 @router.get("/temperatures/history")
-async def get_temperature_history(hours: int = 24):
+@data_limit
+async def get_temperature_history(
+    request: Request,hours: int = 24):
     """
     Get temperature history for specified number of hours.
 

@@ -8,6 +8,8 @@ export interface TemperatureReading {
   brine_in?: number;
   brine_out?: number;
   hot_water?: number;
+  power?: number;
+  heating?: boolean;
 }
 
 export interface HeatPumpStatus {
@@ -73,4 +75,12 @@ export interface WebSocketMessage {
 export interface VATConfig {
   vat_enabled: boolean;
   vat_rate: number;  // percentage (0-100)
+}
+
+export interface NetAtmoConfig {
+  enabled: boolean;
+  station_name: string;
+  polling_interval: number;
+  outdoor_source: 'heat_pump' | 'netatmo';
+  indoor_source: 'heat_pump' | 'netatmo';
 }

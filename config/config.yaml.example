@@ -20,11 +20,41 @@ nordpool:
   retry_attempts: 3
 
 # Installation Location
+# Configure your heat pump's location here, or use environment variables:
+# THERMIQ_ADDRESS, THERMIQ_LATITUDE, THERMIQ_LONGITUDE, THERMIQ_TIMEZONE
 location:
-  address: "Sirkli 6, Lombi küla, Tartu vald, Estonia"
-  latitude: 58.3780  # Tartu region coordinates
-  longitude: 26.7290
-  timezone: "Europe/Tallinn"
+  address: "Your Address Here"  # Display name for your installation
+  latitude: 0.0  # Your location's latitude (required for weather data)
+  longitude: 0.0  # Your location's longitude
+  timezone: "UTC"  # IANA timezone (e.g., "Europe/Tallinn", "America/New_York")
+
+# Weather Forecast Integration (Optional)
+# Enables weather-based optimization and heating load prediction
+weather:
+  enabled: false  # Set to true to enable weather integration
+  api_key: ""  # OpenWeather API key (get free at https://openweathermap.org/api)
+  # Weather data uses location.latitude and location.longitude configured above
+  # Free tier: 1000 calls/day, updates every hour
+
+# NetAtmo Weather Station Integration (Optional)
+# Use NetAtmo weather station as alternative temperature data source
+netatmo:
+  enabled: false  # Set to true to enable NetAtmo integration
+  client_id: ""  # NetAtmo app client ID (create app at https://dev.netatmo.com/)
+  client_secret: ""  # NetAtmo app client secret
+  username: ""  # NetAtmo account email
+  password: ""  # NetAtmo account password
+  station_name: ""  # Optional - uses first station if empty
+  outdoor_module_name: ""  # Optional - auto-detects outdoor module
+  polling_interval: 600  # Poll NetAtmo API every 10 minutes (600 seconds)
+
+# Temperature Data Sources
+# Choose which sensors to use for temperature readings
+temperature_sources:
+  outdoor_source: "heat_pump"  # "heat_pump" or "netatmo"
+  indoor_source: "heat_pump"   # "heat_pump" or "netatmo"
+  # Heat pump provides all specialized sensors (supply, return, brine, hot water)
+  # NetAtmo provides more accurate ambient outdoor temperature
 
 # Optimization Settings
 optimization:

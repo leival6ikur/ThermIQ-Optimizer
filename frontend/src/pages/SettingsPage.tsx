@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import type { VATConfig } from '../types/index.js';
+import type { VATConfig, NetAtmoConfig } from '../types/index.js';
 
 interface Settings {
   target_temperature: number;
@@ -11,6 +11,14 @@ interface Settings {
   building_insulation: 'poor' | 'average' | 'good' | 'excellent';
   region: string;
   currency: string;
+  netatmo_enabled: boolean;
+  netatmo_station_name: string;
+  netatmo_client_id: string;
+  netatmo_client_secret: string;
+  netatmo_username: string;
+  netatmo_password: string;
+  outdoor_source: 'heat_pump' | 'netatmo';
+  indoor_source: 'heat_pump' | 'netatmo';
 }
 
 export const SettingsPage: React.FC = () => {
@@ -24,6 +32,14 @@ export const SettingsPage: React.FC = () => {
     building_insulation: 'good',
     region: 'EE',
     currency: 'EUR',
+    netatmo_enabled: false,
+    netatmo_station_name: '',
+    netatmo_client_id: '',
+    netatmo_client_secret: '',
+    netatmo_username: '',
+    netatmo_password: '',
+    outdoor_source: 'heat_pump',
+    indoor_source: 'heat_pump',
   });
 
   const [vatConfig, setVatConfig] = useState<VATConfig>({
@@ -42,14 +58,16 @@ export const SettingsPage: React.FC = () => {
         // Add small delay to ensure backend is ready
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        const [configRes, vatRes] = await Promise.all([
+        const [configRes, vatRes, netatmoRes] = await Promise.all([
           fetch('http://localhost:8000/api/config'),
           fetch('http://localhost:8000/api/config/vat'),
+          fetch('http://localhost:8000/api/config/netatmo'),
         ]);
 
         if (configRes.ok) {
           const data = await configRes.json();
-          setSettings({
+          setSettings(prev => ({
+            ...prev,
             target_temperature: data.optimization?.target_temperature || 21.5,
             temperature_tolerance: data.optimization?.temperature_tolerance || 1.0,
             comfort_hours_start: data.optimization?.comfort_hours_start || '06:00',
@@ -59,7 +77,7 @@ export const SettingsPage: React.FC = () => {
             building_insulation: data.building?.insulation_quality || 'good',
             region: data.nordpool?.region || 'EE',
             currency: data.nordpool?.currency || 'EUR',
-          });
+          }));
         } else {
           console.error('Failed to fetch config:', configRes.status, await configRes.text());
         }
@@ -72,6 +90,19 @@ export const SettingsPage: React.FC = () => {
           });
         } else {
           console.error('Failed to fetch VAT config:', vatRes.status, await vatRes.text());
+        }
+
+        if (netatmoRes.ok) {
+          const netatmoData = await netatmoRes.json();
+          setSettings(prev => ({
+            ...prev,
+            netatmo_enabled: netatmoData.enabled || false,
+            netatmo_station_name: netatmoData.station_name || '',
+            outdoor_source: netatmoData.outdoor_source || 'heat_pump',
+            indoor_source: netatmoData.indoor_source || 'heat_pump',
+          }));
+        } else {
+          console.error('Failed to fetch NetAtmo config:', netatmoRes.status, await netatmoRes.text());
         }
       } catch (error) {
         console.error('Failed to fetch settings:', error);
@@ -88,7 +119,7 @@ export const SettingsPage: React.FC = () => {
       setSaving(true);
       setMessage(null);
 
-      const [configRes, vatRes] = await Promise.all([
+      const [configRes, vatRes, netatmoRes] = await Promise.all([
         fetch('http://localhost:8000/api/config', {
           method: 'PUT',
           headers: {
@@ -122,13 +153,35 @@ export const SettingsPage: React.FC = () => {
             vat_rate: vatConfig.vat_rate,
           }),
         }),
+        fetch('http://localhost:8000/api/config/netatmo', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            enabled: settings.netatmo_enabled,
+            station_name: settings.netatmo_station_name,
+            outdoor_source: settings.outdoor_source,
+            indoor_source: settings.indoor_source,
+            credentials: {
+              client_id: settings.netatmo_client_id,
+              client_secret: settings.netatmo_client_secret,
+              username: settings.netatmo_username,
+              password: settings.netatmo_password,
+            },
+          }),
+        }),
       ]);
 
-      if (configRes.ok && vatRes.ok) {
-        setMessage({ type: 'success', text: 'Settings saved successfully!' });
-        setTimeout(() => setMessage(null), 3000);
+      if (configRes.ok && vatRes.ok && netatmoRes.ok) {
+        setMessage({ type: 'success', text: 'Settings saved successfully! Restart backend to apply NetAtmo changes.' });
+        setTimeout(() => setMessage(null), 5000);
       } else {
-        setMessage({ type: 'error', text: 'Failed to save settings' });
+        const errors = [];
+        if (!configRes.ok) errors.push('config');
+        if (!vatRes.ok) errors.push('VAT');
+        if (!netatmoRes.ok) errors.push('NetAtmo');
+        setMessage({ type: 'error', text: `Failed to save: ${errors.join(', ')}` });
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Error saving settings' });
@@ -150,9 +203,12 @@ export const SettingsPage: React.FC = () => {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-              <p className="text-sm text-gray-600">Configure ThermIQ Optimizer</p>
+            <div className="flex items-center gap-3">
+              <img src="/thumbnail.svg" alt="Thermi-Nator" className="w-12 h-12" />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+                <p className="text-sm text-gray-600">Configure Thermi-Nator Optimizer</p>
+              </div>
             </div>
             <button
               onClick={() => window.location.href = '/'}
@@ -459,6 +515,63 @@ export const SettingsPage: React.FC = () => {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* NetAtmo Integration Settings */}
+        <div className="card mb-6 opacity-60">
+          <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+            <img src="/thumbnail.svg" alt="" className="w-6 h-6" />
+            Temperature Data Sources
+            <span className="ml-auto px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+              Coming Soon
+            </span>
+          </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Optionally use NetAtmo weather station for more accurate temperature readings
+          </p>
+
+          <div className="space-y-6">
+            {/* Enable NetAtmo */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <div className="font-medium text-gray-900 flex items-center gap-2">
+                  NetAtmo Integration
+                  <span className="text-xs text-gray-500">(Requires OAuth2 implementation)</span>
+                </div>
+                <div className="text-sm text-gray-600">
+                  Use NetAtmo weather station for temperature data
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-not-allowed opacity-50">
+                <input
+                  type="checkbox"
+                  checked={false}
+                  disabled
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-300 rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5"></div>
+              </label>
+            </div>
+
+            {/* Coming Soon Info */}
+            <div className="pl-4 border-l-4 border-blue-400 bg-blue-50 p-4 rounded">
+              <p className="text-sm text-gray-700 mb-2">
+                <strong>Why is this disabled?</strong>
+              </p>
+              <p className="text-sm text-gray-600 mb-2">
+                NetAtmo has deprecated password-based authentication and now requires OAuth2 Authorization Code flow. This means users need to:
+              </p>
+              <ul className="text-sm text-gray-600 list-disc list-inside space-y-1 ml-2">
+                <li>Click a "Connect to NetAtmo" button</li>
+                <li>Log in via NetAtmo's website</li>
+                <li>Authorize the app</li>
+                <li>Be redirected back with an access token</li>
+              </ul>
+              <p className="text-sm text-gray-600 mt-3">
+                This feature requires additional OAuth2 implementation. In the meantime, your heat pump's outdoor temperature sensor works perfectly fine for optimization.
+              </p>
+            </div>
           </div>
         </div>
 

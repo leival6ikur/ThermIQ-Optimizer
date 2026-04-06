@@ -1732,18 +1732,21 @@ async def netatmo_callback(code: str = None, state: str = None, error: str = Non
             config._config['netatmo']['oauth_connected'] = True
             config.save()
 
-            # Redirect to settings page with success
+            # Redirect to frontend settings page with success
             from fastapi.responses import RedirectResponse
-            return RedirectResponse(url="/settings?netatmo_success=true")
+            frontend_url = config.get('frontend_url', 'http://localhost:5173')
+            return RedirectResponse(url=f"{frontend_url}/settings?netatmo_success=true")
         else:
             # Redirect with error
             from fastapi.responses import RedirectResponse
-            return RedirectResponse(url=f"/settings?netatmo_error={result['message']}")
+            frontend_url = config.get('frontend_url', 'http://localhost:5173')
+            return RedirectResponse(url=f"{frontend_url}/settings?netatmo_error={result['message']}")
 
     except Exception as e:
         logger.error(f"Error in OAuth callback: {e}")
         from fastapi.responses import RedirectResponse
-        return RedirectResponse(url=f"/settings?netatmo_error={str(e)}")
+        frontend_url = config.get('frontend_url', 'http://localhost:5173')
+        return RedirectResponse(url=f"{frontend_url}/settings?netatmo_error={str(e)}")
 
 
 @router.get("/auth/netatmo/status")

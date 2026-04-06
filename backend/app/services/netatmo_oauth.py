@@ -126,7 +126,7 @@ class NetAtmoOAuth2Service:
 
             # Test connection
             self.weather = pyatmo.AsyncWeatherStationData(self.auth)
-            await self.weather.update()
+            await self.weather.async_update()
 
             stations = self.weather.stations
             if not stations:
@@ -187,7 +187,7 @@ class NetAtmoOAuth2Service:
 
         try:
             await self._ensure_authenticated()
-            await self.weather.update()
+            await self.weather.async_update()
 
             # Get station data
             stations = self.weather.stations

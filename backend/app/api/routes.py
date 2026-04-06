@@ -1857,3 +1857,66 @@ async def netatmo_disconnect(request: Request):
     except Exception as e:
         logger.error(f"Error disconnecting NetAtmo: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/auth/netatmo/test")
+@write_limit
+async def netatmo_test(request: Request):
+    """Test NetAtmo connection by fetching fresh temperature data"""
+    try:
+        config = get_config()
+        netatmo_config = config.get('netatmo', {})
+
+        client_id = netatmo_config.get('client_id')
+        client_secret = netatmo_config.get('client_secret')
+
+        if not client_id or not client_secret:
+            return {
+                "success": False,
+                "message": "NetAtmo not configured"
+            }
+
+        api_config = config.api
+        host = api_config.get('host', '0.0.0.0')
+        port = api_config.get('port', 8000)
+
+        if host == '0.0.0.0':
+            redirect_uri = f"http://localhost:{port}/api/auth/netatmo/callback"
+        else:
+            redirect_uri = f"http://{host}:{port}/api/auth/netatmo/callback"
+
+        from app.services.netatmo_oauth import get_netatmo_oauth_service
+        service = get_netatmo_oauth_service(client_id, client_secret, redirect_uri)
+
+        if not service or not service.is_connected():
+            return {
+                "success": False,
+                "message": "Not connected - please authorize first"
+            }
+
+        # Clear cache to force fresh fetch
+        service._last_reading = None
+        service._last_fetch = None
+
+        # Fetch fresh data
+        reading = await service.get_current_temperature()
+
+        if reading:
+            return {
+                "success": True,
+                "message": "NetAtmo connection working!",
+                "indoor_temp": reading.indoor,
+                "outdoor_temp": reading.outdoor
+            }
+        else:
+            return {
+                "success": False,
+                "message": "Connected but no data available"
+            }
+
+    except Exception as e:
+        logger.error(f"Error testing NetAtmo: {e}", exc_info=True)
+        return {
+            "success": False,
+            "message": f"Test failed: {str(e)}"
+        }

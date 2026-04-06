@@ -22,6 +22,8 @@ export function NetAtmoSetupOAuth({ onClose }: NetAtmoSetupOAuthProps) {
   const [error, setError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<any>(null);
 
   useEffect(() => {
     fetchConfig();
@@ -149,6 +151,26 @@ export function NetAtmoSetupOAuth({ onClose }: NetAtmoSetupOAuthProps) {
     }
   };
 
+  const handleTest = async () => {
+    setTesting(true);
+    setTestResult(null);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/auth/netatmo/test', {
+        method: 'POST',
+      });
+      if (!response.ok) throw new Error('Failed to test connection');
+
+      const data = await response.json();
+      setTestResult(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Test failed');
+    } finally {
+      setTesting(false);
+    }
+  };
+
   if (loading) {
     return <div className="p-4">Loading...</div>;
   }
@@ -174,7 +196,7 @@ export function NetAtmoSetupOAuth({ onClose }: NetAtmoSetupOAuthProps) {
       {/* Connection Status */}
       {isConnected && (
         <div className="mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-3">
             <div>
               <p className="font-semibold text-green-900 dark:text-green-100">
                 ✓ Connected to NetAtmo
@@ -182,19 +204,59 @@ export function NetAtmoSetupOAuth({ onClose }: NetAtmoSetupOAuthProps) {
               <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
                 {status.message}
               </p>
-              {status.indoor_temp !== undefined && (
+              {status.indoor_temp !== undefined && status.indoor_temp !== null && (
                 <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
                   Indoor: {status.indoor_temp?.toFixed(1)}°C | Outdoor: {status.outdoor_temp?.toFixed(1)}°C
                 </p>
               )}
             </div>
-            <button
-              onClick={handleDisconnect}
-              className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-            >
-              Disconnect
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleTest}
+                disabled={testing}
+                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                {testing ? 'Testing...' : 'Test'}
+              </button>
+              <button
+                onClick={handleDisconnect}
+                className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                Disconnect
+              </button>
+            </div>
           </div>
+
+          {/* Test Result */}
+          {testResult && (
+            <div className={`mt-3 p-3 rounded-lg ${
+              testResult.success && testResult.indoor_temp !== null
+                ? 'bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700'
+                : testResult.success
+                ? 'bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700'
+                : 'bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700'
+            }`}>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                {testResult.success ? '✓ Test Result:' : '✗ Test Failed:'}
+              </p>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                {testResult.message}
+              </p>
+              {testResult.success && testResult.indoor_temp !== null && testResult.indoor_temp !== undefined ? (
+                <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                  <p>✓ Indoor: {testResult.indoor_temp?.toFixed(1)}°C</p>
+                  <p>✓ Outdoor: {testResult.outdoor_temp?.toFixed(1)}°C</p>
+                  <p className="mt-2 text-xs text-green-700 dark:text-green-300">
+                    NetAtmo is working! Temperature data will be polled every 10 minutes after backend restart.
+                  </p>
+                </div>
+              ) : testResult.success ? (
+                <p className="mt-2 text-sm text-yellow-800 dark:text-yellow-200">
+                  ⚠️ Connected but no temperature data available. Check your NetAtmo station status at my.netatmo.com
+                </p>
+              ) : null}
+            </div>
+          )}
         </div>
       )}
 

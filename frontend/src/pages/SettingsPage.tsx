@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { VATConfig, NetAtmoConfig } from '../types/index.js';
-import { NetAtmoSetup } from '../components/NetAtmoSetup';
+import { NetAtmoSetupOAuth } from '../components/NetAtmoSetupOAuth';
 
 interface Settings {
   target_temperature: number;
@@ -582,7 +582,7 @@ export const SettingsPage: React.FC = () => {
       {showNetAtmoSetup && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="max-w-3xl w-full">
-            <NetAtmoSetup onClose={() => {
+            <NetAtmoSetupOAuth onClose={() => {
               setShowNetAtmoSetup(false);
               // Refresh settings after closing
               window.location.reload();

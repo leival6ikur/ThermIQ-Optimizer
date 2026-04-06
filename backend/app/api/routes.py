@@ -1619,3 +1619,238 @@ async def test_netatmo_connection(request: Request, netatmo_config: NetAtmoConfi
             "success": False,
             "message": f"Connection test failed: {str(e)}"
         }
+
+
+# NetAtmo OAuth2 endpoints
+@router.get("/auth/netatmo/authorize")
+@standard_limit
+async def netatmo_authorize(request: Request):
+    """
+    Get NetAtmo OAuth2 authorization URL.
+
+    User should be redirected to this URL to authorize the application.
+    """
+    try:
+        config = get_config()
+        netatmo_config = config.get('netatmo', {})
+
+        client_id = netatmo_config.get('client_id')
+        client_secret = netatmo_config.get('client_secret')
+
+        if not client_id or not client_secret:
+            raise HTTPException(
+                status_code=400,
+                detail="NetAtmo client_id and client_secret must be configured first"
+            )
+
+        # Get redirect URI from config or use default
+        api_config = config.api
+        host = api_config.get('host', '0.0.0.0')
+        port = api_config.get('port', 8000)
+
+        # Use localhost for development, actual host for production
+        if host == '0.0.0.0':
+            redirect_uri = f"http://localhost:{port}/api/auth/netatmo/callback"
+        else:
+            redirect_uri = f"http://{host}:{port}/api/auth/netatmo/callback"
+
+        # Initialize OAuth service
+        from app.services.netatmo_oauth import get_netatmo_oauth_service
+        service = get_netatmo_oauth_service(client_id, client_secret, redirect_uri)
+
+        if not service:
+            raise HTTPException(status_code=500, detail="Failed to initialize NetAtmo service")
+
+        # Generate random state for CSRF protection
+        import secrets
+        state = secrets.token_urlsafe(32)
+
+        # Store state in session (for now, just return it - frontend will send it back)
+        auth_url = service.get_authorization_url(state=state)
+
+        return {
+            "authorization_url": auth_url,
+            "state": state
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting authorization URL: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/auth/netatmo/callback")
+async def netatmo_callback(code: str = None, state: str = None, error: str = None):
+    """
+    OAuth2 callback endpoint.
+
+    NetAtmo redirects here after user authorizes the application.
+    """
+    try:
+        if error:
+            # User denied authorization
+            return {
+                "success": False,
+                "message": f"Authorization denied: {error}",
+                "redirect": "/settings?netatmo_error=denied"
+            }
+
+        if not code:
+            raise HTTPException(status_code=400, detail="No authorization code provided")
+
+        # Get service
+        config = get_config()
+        netatmo_config = config.get('netatmo', {})
+
+        client_id = netatmo_config.get('client_id')
+        client_secret = netatmo_config.get('client_secret')
+
+        api_config = config.api
+        host = api_config.get('host', '0.0.0.0')
+        port = api_config.get('port', 8000)
+
+        if host == '0.0.0.0':
+            redirect_uri = f"http://localhost:{port}/api/auth/netatmo/callback"
+        else:
+            redirect_uri = f"http://{host}:{port}/api/auth/netatmo/callback"
+
+        from app.services.netatmo_oauth import get_netatmo_oauth_service
+        service = get_netatmo_oauth_service(client_id, client_secret, redirect_uri)
+
+        if not service:
+            raise HTTPException(status_code=500, detail="Failed to initialize NetAtmo service")
+
+        # Exchange code for token
+        result = await service.handle_callback(code=code)
+
+        if result["success"]:
+            # Enable NetAtmo in config
+            if 'netatmo' not in config._config:
+                config._config['netatmo'] = {}
+            config._config['netatmo']['enabled'] = True
+            config._config['netatmo']['oauth_connected'] = True
+            config.save()
+
+            # Redirect to settings page with success
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(url="/settings?netatmo_success=true")
+        else:
+            # Redirect with error
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(url=f"/settings?netatmo_error={result['message']}")
+
+    except Exception as e:
+        logger.error(f"Error in OAuth callback: {e}")
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=f"/settings?netatmo_error={str(e)}")
+
+
+@router.get("/auth/netatmo/status")
+@standard_limit
+async def netatmo_status(request: Request):
+    """Check NetAtmo OAuth connection status"""
+    try:
+        config = get_config()
+        netatmo_config = config.get('netatmo', {})
+
+        client_id = netatmo_config.get('client_id')
+        client_secret = netatmo_config.get('client_secret')
+
+        if not client_id or not client_secret:
+            return {
+                "connected": False,
+                "message": "NetAtmo not configured"
+            }
+
+        api_config = config.api
+        host = api_config.get('host', '0.0.0.0')
+        port = api_config.get('port', 8000)
+
+        if host == '0.0.0.0':
+            redirect_uri = f"http://localhost:{port}/api/auth/netatmo/callback"
+        else:
+            redirect_uri = f"http://{host}:{port}/api/auth/netatmo/callback"
+
+        from app.services.netatmo_oauth import get_netatmo_oauth_service
+        service = get_netatmo_oauth_service(client_id, client_secret, redirect_uri)
+
+        if not service:
+            return {
+                "connected": False,
+                "message": "Service not initialized"
+            }
+
+        connected = service.is_connected()
+
+        if connected:
+            # Try to get current temperature to verify token is valid
+            try:
+                reading = await service.get_current_temperature()
+                return {
+                    "connected": True,
+                    "message": "Connected and working",
+                    "indoor_temp": reading.indoor if reading else None,
+                    "outdoor_temp": reading.outdoor if reading else None
+                }
+            except:
+                return {
+                    "connected": True,
+                    "message": "Token exists but may need refresh",
+                    "needs_refresh": True
+                }
+        else:
+            return {
+                "connected": False,
+                "message": "Not connected - please authorize"
+            }
+
+    except Exception as e:
+        logger.error(f"Error checking NetAtmo status: {e}")
+        return {
+            "connected": False,
+            "message": f"Error: {str(e)}"
+        }
+
+
+@router.post("/auth/netatmo/disconnect")
+@write_limit
+async def netatmo_disconnect(request: Request):
+    """Disconnect NetAtmo and remove stored tokens"""
+    try:
+        config = get_config()
+        netatmo_config = config.get('netatmo', {})
+
+        client_id = netatmo_config.get('client_id')
+        client_secret = netatmo_config.get('client_secret')
+
+        if client_id and client_secret:
+            api_config = config.api
+            host = api_config.get('host', '0.0.0.0')
+            port = api_config.get('port', 8000)
+
+            if host == '0.0.0.0':
+                redirect_uri = f"http://localhost:{port}/api/auth/netatmo/callback"
+            else:
+                redirect_uri = f"http://{host}:{port}/api/auth/netatmo/callback"
+
+            from app.services.netatmo_oauth import get_netatmo_oauth_service
+            service = get_netatmo_oauth_service(client_id, client_secret, redirect_uri)
+
+            if service:
+                await service.disconnect()
+
+        # Disable in config
+        if 'netatmo' in config._config:
+            config._config['netatmo']['enabled'] = False
+            config._config['netatmo']['oauth_connected'] = False
+            config.save()
+
+        return {
+            "success": True,
+            "message": "NetAtmo disconnected successfully"
+        }
+
+    except Exception as e:
+        logger.error(f"Error disconnecting NetAtmo: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

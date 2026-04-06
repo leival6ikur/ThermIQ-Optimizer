@@ -304,38 +304,89 @@ async def lifespan(app: FastAPI):
         if netatmo_config.get('enabled', False):
             client_id = netatmo_config.get('client_id')
             client_secret = netatmo_config.get('client_secret')
-            username = netatmo_config.get('username')
-            password = netatmo_config.get('password')
 
-            if all([client_id, client_secret, username, password]):
-                from app.services.netatmo_service import get_netatmo_service
-                netatmo_service = get_netatmo_service(client_id, client_secret, username, password)
+            # Check if OAuth2 is being used
+            oauth_connected = netatmo_config.get('oauth_connected', False)
 
-                if netatmo_service:
-                    logger.info("NetAtmo service initialized")
+            if client_id and client_secret:
+                if oauth_connected:
+                    # Use OAuth2 service
+                    logger.info("Initializing NetAtmo OAuth2 service")
+                    api_config = config.api
+                    host = api_config.get('host', '0.0.0.0')
+                    port = api_config.get('port', 8000)
 
-                    # Start periodic polling task
-                    async def poll_netatmo():
-                        """Poll NetAtmo API periodically for temperature data"""
-                        while True:
-                            try:
-                                reading = await netatmo_service.get_current_temperature()
-                                if reading:
-                                    # Save to database with source='netatmo'
-                                    await db.save_temperature(reading, source='netatmo')
-                                    logger.debug("NetAtmo temperature data saved to database")
-                            except Exception as e:
-                                logger.error(f"NetAtmo polling error: {e}")
+                    if host == '0.0.0.0':
+                        redirect_uri = f"http://localhost:{port}/api/auth/netatmo/callback"
+                    else:
+                        redirect_uri = f"http://{host}:{port}/api/auth/netatmo/callback"
 
-                            interval = netatmo_config.get('polling_interval', 600)
-                            await asyncio.sleep(interval)
+                    from app.services.netatmo_oauth import get_netatmo_oauth_service
+                    netatmo_service = get_netatmo_oauth_service(client_id, client_secret, redirect_uri)
 
-                    asyncio.create_task(poll_netatmo())
-                    logger.info(f"NetAtmo polling task started (interval: {netatmo_config.get('polling_interval', 600)}s)")
+                    if netatmo_service and netatmo_service.is_connected():
+                        logger.info("NetAtmo OAuth2 service initialized and connected")
+
+                        # Start periodic polling task
+                        async def poll_netatmo():
+                            """Poll NetAtmo API periodically for temperature data"""
+                            while True:
+                                try:
+                                    # Refresh token if needed
+                                    await netatmo_service.refresh_token_if_needed()
+
+                                    reading = await netatmo_service.get_current_temperature()
+                                    if reading:
+                                        # Save to database with source='netatmo'
+                                        await db.save_temperature(reading, source='netatmo')
+                                        logger.debug("NetAtmo temperature data saved to database")
+                                except Exception as e:
+                                    logger.error(f"NetAtmo polling error: {e}")
+
+                                interval = netatmo_config.get('polling_interval', 600)
+                                await asyncio.sleep(interval)
+
+                        asyncio.create_task(poll_netatmo())
+                        logger.info(f"NetAtmo OAuth2 polling task started (interval: {netatmo_config.get('polling_interval', 600)}s)")
+                    else:
+                        logger.warning("NetAtmo OAuth2 service not connected. Please authorize via /settings")
                 else:
-                    logger.warning("NetAtmo service initialization failed")
+                    # Fallback to password-based auth (legacy)
+                    username = netatmo_config.get('username')
+                    password = netatmo_config.get('password')
+
+                    if username and password:
+                        logger.info("Using legacy NetAtmo password authentication (consider migrating to OAuth2)")
+                        from app.services.netatmo_service import get_netatmo_service
+                        netatmo_service = get_netatmo_service(client_id, client_secret, username, password)
+
+                        if netatmo_service:
+                            logger.info("NetAtmo service initialized")
+
+                            # Start periodic polling task
+                            async def poll_netatmo():
+                                """Poll NetAtmo API periodically for temperature data"""
+                                while True:
+                                    try:
+                                        reading = await netatmo_service.get_current_temperature()
+                                        if reading:
+                                            # Save to database with source='netatmo'
+                                            await db.save_temperature(reading, source='netatmo')
+                                            logger.debug("NetAtmo temperature data saved to database")
+                                    except Exception as e:
+                                        logger.error(f"NetAtmo polling error: {e}")
+
+                                    interval = netatmo_config.get('polling_interval', 600)
+                                    await asyncio.sleep(interval)
+
+                            asyncio.create_task(poll_netatmo())
+                            logger.info(f"NetAtmo polling task started (interval: {netatmo_config.get('polling_interval', 600)}s)")
+                        else:
+                            logger.warning("NetAtmo service initialization failed")
+                    else:
+                        logger.warning("NetAtmo enabled but not connected. Please authorize via /settings")
             else:
-                logger.warning("NetAtmo service enabled but missing credentials")
+                logger.warning("NetAtmo client_id and client_secret not configured")
         else:
             logger.info("NetAtmo service disabled in configuration")
 

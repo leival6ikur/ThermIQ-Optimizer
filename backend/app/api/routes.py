@@ -1518,3 +1518,104 @@ async def set_target_temperature(request: Request, setpoint: SetpointRequest):
     except Exception as e:
         logger.error(f"Error setting target temperature: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# NetAtmo configuration endpoints
+class NetAtmoConfig(BaseModel):
+    """NetAtmo configuration"""
+    enabled: bool
+    client_id: str = ""
+    client_secret: str = ""
+    username: str = ""
+    password: str = ""
+    station_name: str = ""
+    polling_interval: int = 600  # seconds
+
+
+@router.get("/config/netatmo")
+@standard_limit
+async def get_netatmo_config(request: Request):
+    """Get NetAtmo configuration (without sensitive data)"""
+    try:
+        config = get_config()
+        netatmo = config.get('netatmo', {})
+
+        return {
+            "enabled": netatmo.get('enabled', False),
+            "client_id": netatmo.get('client_id', ''),
+            "username": netatmo.get('username', ''),
+            "station_name": netatmo.get('station_name', ''),
+            "polling_interval": netatmo.get('polling_interval', 600),
+            "has_client_secret": bool(netatmo.get('client_secret')),
+            "has_password": bool(netatmo.get('password')),
+        }
+    except Exception as e:
+        logger.error(f"Error getting NetAtmo config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/config/netatmo")
+@write_limit
+async def set_netatmo_config(request: Request, netatmo_config: NetAtmoConfig):
+    """Set NetAtmo configuration"""
+    try:
+        config = get_config()
+
+        # Update config
+        if 'netatmo' not in config._config:
+            config._config['netatmo'] = {}
+
+        config._config['netatmo']['enabled'] = netatmo_config.enabled
+        config._config['netatmo']['client_id'] = netatmo_config.client_id
+        config._config['netatmo']['client_secret'] = netatmo_config.client_secret
+        config._config['netatmo']['username'] = netatmo_config.username
+        config._config['netatmo']['password'] = netatmo_config.password
+        config._config['netatmo']['station_name'] = netatmo_config.station_name
+        config._config['netatmo']['polling_interval'] = netatmo_config.polling_interval
+
+        # Save to file
+        config.save()
+
+        logger.info(f"NetAtmo configuration updated (enabled: {netatmo_config.enabled})")
+
+        return {
+            "success": True,
+            "message": "NetAtmo configuration saved. Restart backend to apply changes."
+        }
+    except Exception as e:
+        logger.error(f"Error setting NetAtmo config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/config/netatmo/test")
+@write_limit
+async def test_netatmo_connection(request: Request, netatmo_config: NetAtmoConfig):
+    """Test NetAtmo connection with provided credentials"""
+    try:
+        # Create temporary service instance
+        from app.services.netatmo_service import NetAtmoService
+
+        service = NetAtmoService(
+            client_id=netatmo_config.client_id,
+            client_secret=netatmo_config.client_secret,
+            username=netatmo_config.username,
+            password=netatmo_config.password
+        )
+
+        # Test connection
+        result = await service.test_connection()
+
+        if result["success"]:
+            # Try to get a temperature reading
+            reading = await service.get_current_temperature()
+            if reading:
+                result["indoor_temp"] = reading.indoor
+                result["outdoor_temp"] = reading.outdoor
+
+        return result
+    except Exception as e:
+        logger.error(f"Error testing NetAtmo connection: {e}")
+        return {
+            "success": False,
+            "message": f"Connection test failed: {str(e)}"
+        }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { VATConfig, NetAtmoConfig } from '../types/index.js';
+import { NetAtmoSetup } from '../components/NetAtmoSetup';
 
 interface Settings {
   target_temperature: number;
@@ -50,6 +51,7 @@ export const SettingsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [showNetAtmoSetup, setShowNetAtmoSetup] = useState(false);
 
   // Fetch current settings
   useEffect(() => {
@@ -519,57 +521,46 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         {/* NetAtmo Integration Settings */}
-        <div className="card mb-6 opacity-60">
+        <div className="card mb-6">
           <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
             <img src="/thumbnail.svg" alt="" className="w-6 h-6" />
-            Temperature Data Sources
-            <span className="ml-auto px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-              Coming Soon
-            </span>
+            NetAtmo Weather Station
+            {settings.netatmo_enabled && (
+              <span className="ml-auto px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                Enabled
+              </span>
+            )}
           </h2>
           <p className="text-sm text-gray-600 mb-4">
-            Optionally use NetAtmo weather station for more accurate temperature readings
+            Use NetAtmo weather station for more accurate indoor/outdoor temperature readings
           </p>
 
-          <div className="space-y-6">
-            {/* Enable NetAtmo */}
+          <div className="space-y-4">
+            {/* Status */}
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div>
-                <div className="font-medium text-gray-900 flex items-center gap-2">
-                  NetAtmo Integration
-                  <span className="text-xs text-gray-500">(Requires OAuth2 implementation)</span>
+                <div className="font-medium text-gray-900">
+                  {settings.netatmo_enabled ? 'NetAtmo Configured' : 'NetAtmo Not Configured'}
                 </div>
                 <div className="text-sm text-gray-600">
-                  Use NetAtmo weather station for temperature data
+                  {settings.netatmo_enabled
+                    ? `Station: ${settings.netatmo_station_name || 'Default'}`
+                    : 'Connect your NetAtmo weather station for better accuracy'}
                 </div>
               </div>
-              <label className="relative inline-flex items-center cursor-not-allowed opacity-50">
-                <input
-                  type="checkbox"
-                  checked={false}
-                  disabled
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-300 rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5"></div>
-              </label>
+              <button
+                onClick={() => setShowNetAtmoSetup(true)}
+                className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                {settings.netatmo_enabled ? 'Configure' : 'Setup'} NetAtmo
+              </button>
             </div>
 
-            {/* Coming Soon Info */}
-            <div className="pl-4 border-l-4 border-blue-400 bg-blue-50 p-4 rounded">
-              <p className="text-sm text-gray-700 mb-2">
-                <strong>Why is this disabled?</strong>
-              </p>
-              <p className="text-sm text-gray-600 mb-2">
-                NetAtmo has deprecated password-based authentication and now requires OAuth2 Authorization Code flow. This means users need to:
-              </p>
-              <ul className="text-sm text-gray-600 list-disc list-inside space-y-1 ml-2">
-                <li>Click a "Connect to NetAtmo" button</li>
-                <li>Log in via NetAtmo's website</li>
-                <li>Authorize the app</li>
-                <li>Be redirected back with an access token</li>
-              </ul>
-              <p className="text-sm text-gray-600 mt-3">
-                This feature requires additional OAuth2 implementation. In the meantime, your heat pump's outdoor temperature sensor works perfectly fine for optimization.
+            {/* Info */}
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-gray-700">
+                <strong>Why NetAtmo?</strong> Your heat pump's sensor reads ~20°C while NetAtmo shows 24.1°C.
+                NetAtmo placement provides more accurate room temperature for better optimization.
               </p>
             </div>
           </div>
@@ -586,6 +577,19 @@ export const SettingsPage: React.FC = () => {
           </button>
         </div>
       </main>
+
+      {/* NetAtmo Setup Modal */}
+      {showNetAtmoSetup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="max-w-3xl w-full">
+            <NetAtmoSetup onClose={() => {
+              setShowNetAtmoSetup(false);
+              // Refresh settings after closing
+              window.location.reload();
+            }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

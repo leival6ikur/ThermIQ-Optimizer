@@ -96,9 +96,13 @@ class MQTTManager:
             topic = msg.topic
             payload = json.loads(msg.payload.decode())
 
-            # Log ThermIQ data messages
+            # Log ThermIQ data messages - look for mode indicators
             if "/data" in topic:
-                logger.debug(f"ThermIQ data - INDR_T: {payload.get('INDR_T')}, EVU: {payload.get('EVU')}")
+                # Log all non-register, non-metadata fields to find mode
+                all_fields = {k: v for k, v in payload.items() if not k.startswith('d') and k not in ['Client_Name', 'app_info', 'reason', 'rssi', 'time', 'timestamp']}
+                logger.info(f"All named fields: {all_fields}")
+                # Check some potential mode registers
+                logger.info(f"Potential mode registers - d98: {payload.get('d98')}, d99: {payload.get('d99')}, d100: {payload.get('d100')}, d101: {payload.get('d101')}, d102: {payload.get('d102')}, d103: {payload.get('d103')}")
 
             logger.debug(f"Received {topic}: {payload}")
 
@@ -218,10 +222,16 @@ class MQTTManager:
                 hot_water=reg_to_temp(payload.get('d7')),  # d7 = hot water tank temp
             )
 
+            # Detect heating status: if supply temp is significantly higher than return temp,
+            # the compressor is actively heating (d4 register doesn't reliably indicate this)
+            supply_temp = reading.supply or 0
+            return_temp = reading.return_temp or 0
+            heating_active = (supply_temp - return_temp) > 5.0  # 5°C threshold
+
             # Extract heat pump status
             status = HeatPumpStatus(
                 timestamp=datetime.now(),
-                heating=payload.get('d4', 0) == 1,  # d4 = compressor status
+                heating=heating_active,  # Based on temperature difference
                 power=None,  # Power not available in this format
                 mode='auto',
                 heat_curve=None,
@@ -245,7 +255,7 @@ class MQTTManager:
                 'heat_curve': status.heat_curve,
             }
 
-            logger.info(f"Processed ThermIQ data: Indoor={reading.indoor}°C, Outdoor={reading.outdoor}°C, Heating={status.heating}")
+            logger.info(f"Processed ThermIQ data: Indoor={reading.indoor}°C, Outdoor={reading.outdoor}°C, Supply={reading.supply}°C, Return={reading.return_temp}°C, Heating={status.heating}")
 
             # Notify callbacks
             for callback in self.temperature_callbacks:

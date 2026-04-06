@@ -7,6 +7,7 @@ import { ErrorNotification } from '../components/ErrorNotification';
 import { HistoryChart } from '../components/HistoryChart';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { NotificationDropdown } from '../components/NotificationDropdown';
+import { TemperatureControl } from '../components/TemperatureControl';
 import { useWebSocket } from '../hooks/useWebSocket';
 import type {
   SystemStatus,
@@ -690,6 +691,11 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Charts Grid */}
+        {/* Temperature Control */}
+        <div className="mb-8">
+          <TemperatureControl />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <TemperatureChart data={temperatureHistory} />
           <PriceChart

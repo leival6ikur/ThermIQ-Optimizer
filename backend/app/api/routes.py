@@ -1453,3 +1453,68 @@ async def get_hot_water_schedule(target_date: Optional[str] = None):
     except Exception as e:
         logger.error(f"Error getting hot water schedule: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Control endpoints
+class SetpointRequest(BaseModel):
+    """Request to set target temperature"""
+    temperature: float  # Target temperature in °C
+
+
+@router.get("/control/setpoint")
+@standard_limit
+async def get_target_temperature(request: Request):
+    """Get current target temperature setpoint"""
+    try:
+        engine = get_optimization_engine()
+        return {
+            "target_temperature": engine.target_temp,
+            "unit": "celsius"
+        }
+    except Exception as e:
+        logger.error(f"Error getting target temperature: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/control/setpoint")
+@write_limit
+async def set_target_temperature(request: Request, setpoint: SetpointRequest):
+    """
+    Set target temperature setpoint
+
+    Temperature range: 18-25°C
+    """
+    try:
+        # Validate temperature range
+        if not 18.0 <= setpoint.temperature <= 25.0:
+            raise HTTPException(
+                status_code=400,
+                detail="Temperature must be between 18°C and 25°C"
+            )
+
+        # Update optimization engine
+        engine = get_optimization_engine()
+        engine.target_temp = setpoint.temperature
+
+        # Update config file to persist the change
+        config = get_config()
+        config.optimization['target_temp'] = setpoint.temperature
+        config.save()
+
+        # Publish setpoint to ThermIQ device
+        mqtt = get_mqtt_manager()
+        success = mqtt.publish_setpoint(setpoint.temperature)
+
+        logger.info(f"Target temperature set to {setpoint.temperature}°C")
+
+        return {
+            "success": success,
+            "target_temperature": setpoint.temperature,
+            "message": f"Target temperature set to {setpoint.temperature}°C"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error setting target temperature: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

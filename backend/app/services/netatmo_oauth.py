@@ -124,9 +124,10 @@ class NetAtmoOAuth2Service:
             # Save token
             self._save_token(token)
 
-            # Test connection
-            self.weather = pyatmo.AsyncWeatherStationData(self.auth)
-            await self.weather.async_update()
+            # Test connection - use sync API in executor
+            self.weather = pyatmo.WeatherStationData(self.auth)
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, self.weather.update)
 
             stations = self.weather.stations
             if not stations:
@@ -166,7 +167,8 @@ class NetAtmoOAuth2Service:
             )
 
         if self.weather is None:
-            self.weather = pyatmo.AsyncWeatherStationData(self.auth)
+            # Use sync WeatherStationData since OAuth2 doesn't have async support yet
+            self.weather = pyatmo.WeatherStationData(self.auth)
 
     async def get_current_temperature(self, station_name: str = None,
                                      module_name: str = None) -> Optional[TemperatureReading]:
@@ -187,7 +189,9 @@ class NetAtmoOAuth2Service:
 
         try:
             await self._ensure_authenticated()
-            await self.weather.async_update()
+            # Use sync update in executor
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, self.weather.update)
 
             # Get station data
             stations = self.weather.stations

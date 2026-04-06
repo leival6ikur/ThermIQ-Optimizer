@@ -1,10 +1,10 @@
 # Development Guide
 
-Complete guide for developing ThermIQ without the physical hardware.
+Complete guide for developing Thermi-Nator without the physical hardware.
 
 ## Overview
 
-You can fully develop and test the ThermIQ system before the physical device arrives by using the mock device simulator. This simulates realistic heat pump behavior including thermal dynamics, temperature fluctuations, and response to control commands.
+You can fully develop and test the Thermi-Nator system before the physical device arrives by using the mock device simulator. This simulates realistic heat pump behavior including thermal dynamics, temperature fluctuations, and response to control commands.
 
 ## Prerequisites
 
@@ -75,7 +75,7 @@ python scripts/mock_device.py
 
 You'll see output like:
 ```
-2024-03-15 14:30:00 - INFO - Starting mock ThermIQ device
+2024-03-15 14:30:00 - INFO - Starting mock Thermi-Nator device
 2024-03-15 14:30:01 - INFO - Connected to MQTT broker
 2024-03-15 14:30:01 - INFO - Published: Indoor=21.0°C Outdoor=5.0°C Heating=ON Power=1200W
 ```
@@ -425,7 +425,7 @@ Once comfortable with development:
 4. **Deployment Prep**: Package for Windows
 
 When device arrives:
-1. **Physical Setup**: Connect ThermIQ-ROOM2LP to heat pump
+1. **Physical Setup**: Connect Thermi-Nator-ROOM2LP to heat pump
 2. **Calibration**: Run in monitoring mode for 24h
 3. **Thermal Tuning**: Update building parameters in config
 4. **Production**: Enable full optimization

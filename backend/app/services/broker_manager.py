@@ -69,7 +69,7 @@ class BrokerManager:
         persistence_dir = get_data_dir() / 'mosquitto_persistence'
         persistence_dir.mkdir(exist_ok=True)
 
-        config_content = f"""# ThermIQ Embedded Mosquitto Configuration
+        config_content = f"""# Thermi-Nator Embedded Mosquitto Configuration
 # Auto-generated - do not edit manually
 
 # Network

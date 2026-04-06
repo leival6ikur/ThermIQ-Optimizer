@@ -1,7 +1,7 @@
 """
 MQTT Manager Service
 
-Handles all MQTT communication with ThermIQ device:
+Handles all MQTT communication with Thermi-Nator device:
 - Connection management
 - Message parsing
 - Command publishing
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class MQTTManager:
-    """Manages MQTT communication with ThermIQ device"""
+    """Manages MQTT communication with Thermi-Nator device"""
 
     def __init__(self):
         self.config = get_config()
@@ -66,11 +66,12 @@ class MQTTManager:
             self.connected = True
             logger.info(f"Connected to MQTT broker at {self.broker}:{self.port}")
 
-            # Subscribe to all device topics
-            base_topic = f"thermiq/{self.device_id}"
+            # Subscribe to device topics
+            # Support both old format (thermiq/device/sensors) and new format (ThermIQ/device/data)
             topics = [
-                (f"{base_topic}/sensors/#", 1),
-                (f"{base_topic}/status/#", 1),
+                (f"thermiq/{self.device_id}/sensors/#", 1),
+                (f"thermiq/{self.device_id}/status/#", 1),
+                (f"ThermIQ/{self.device_id}/data", 1),  # Real ThermIQ device format
             ]
 
             for topic, qos in topics:
@@ -95,10 +96,17 @@ class MQTTManager:
             topic = msg.topic
             payload = json.loads(msg.payload.decode())
 
+            # Log ThermIQ data messages
+            if "/data" in topic:
+                logger.debug(f"ThermIQ data - INDR_T: {payload.get('INDR_T')}, EVU: {payload.get('EVU')}")
+
             logger.debug(f"Received {topic}: {payload}")
 
             # Route message based on topic
-            if "/sensors/temperature/" in topic:
+            if "/data" in topic:
+                # Real ThermIQ device sends all data in single message
+                self._handle_thermiq_data(payload)
+            elif "/sensors/temperature/" in topic:
                 self._handle_temperature(topic, payload)
             elif "/sensors/power" in topic:
                 self._handle_power(payload)
@@ -182,6 +190,79 @@ class MQTTManager:
         except Exception as e:
             logger.error(f"Error handling status: {e}")
 
+    def _handle_thermiq_data(self, payload: Dict[str, Any]):
+        """Handle complete data message from real ThermIQ device"""
+        try:
+            # ThermIQ device sends all sensor data in single JSON payload using registers
+            # Most registers are direct degree values
+            # Named field INDR_T is indoor temperature
+
+            def reg_to_temp(reg_value, is_tenth=False):
+                """Convert register value to temperature"""
+                if reg_value is None:
+                    return None
+                return reg_value / 10.0 if is_tenth else float(reg_value)
+
+            # Extract temperature readings (verified against Nibe display)
+            # Note: indoor temp from heat pump sensor (~20°C) differs from NetAtmo (~24°C)
+            # This is the temp the heat pump uses for control decisions
+            reading = TemperatureReading(
+                timestamp=datetime.now(),
+                indoor=payload.get('INDR_T'),  # Indoor temp from heat pump's sensor
+                outdoor=reg_to_temp(payload.get('d0')),  # d0 = outdoor temp
+                supply=reg_to_temp(payload.get('d5')),  # d5 = floor supply temp
+                return_temp=reg_to_temp(payload.get('d6')),  # d6 = return temp
+                target=21.5,  # Default target
+                brine_in=reg_to_temp(payload.get('d9')),  # d9 = brine in
+                brine_out=reg_to_temp(payload.get('d8')),  # d8 = brine out
+                hot_water=reg_to_temp(payload.get('d7')),  # d7 = hot water tank temp
+            )
+
+            # Extract heat pump status
+            status = HeatPumpStatus(
+                timestamp=datetime.now(),
+                heating=payload.get('d4', 0) == 1,  # d4 = compressor status
+                power=None,  # Power not available in this format
+                mode='auto',
+                heat_curve=None,
+            )
+
+            # Update internal state for get_latest_* methods
+            self.current_temperatures = {
+                'indoor': reading.indoor,
+                'outdoor': reading.outdoor,
+                'supply': reading.supply,
+                'return': reading.return_temp,
+                'target': reading.target,
+                'brine_in': reading.brine_in,
+                'brine_out': reading.brine_out,
+                'hot_water': reading.hot_water,
+            }
+            self.current_status = {
+                'heating': status.heating,
+                'power': status.power,
+                'mode': status.mode,
+                'heat_curve': status.heat_curve,
+            }
+
+            logger.info(f"Processed ThermIQ data: Indoor={reading.indoor}°C, Outdoor={reading.outdoor}°C, Heating={status.heating}")
+
+            # Notify callbacks
+            for callback in self.temperature_callbacks:
+                try:
+                    callback(reading)
+                except Exception as e:
+                    logger.error(f"Error in temperature callback: {e}")
+
+            for callback in self.status_callbacks:
+                try:
+                    callback(status)
+                except Exception as e:
+                    logger.error(f"Error in status callback: {e}")
+
+        except Exception as e:
+            logger.error(f"Error handling ThermIQ data: {e}")
+
     def register_temperature_callback(self, callback: Callable[[TemperatureReading], None]):
         """Register callback for temperature updates"""
         self.temperature_callbacks.append(callback)
@@ -209,39 +290,51 @@ class MQTTManager:
     def publish_setpoint(self, temperature: float) -> bool:
         """Publish temperature setpoint command"""
         try:
-            topic = f"thermiq/{self.device_id}/control/setpoint"
+            # Try multiple topic patterns to find what ThermIQ expects
+            topics = [
+                f"ThermIQ/{self.device_id}/set/setpoint",  # Capital T to match data topic
+                f"ThermIQ/{self.device_id}/command/setpoint",
+                f"thermiq/{self.device_id}/control/setpoint",  # Original lowercase
+            ]
+
             payload = json.dumps({"value": temperature})
 
-            result = self.client.publish(topic, payload, qos=1)
+            for topic in topics:
+                result = self.client.publish(topic, payload, qos=1)
+                logger.info(f"Published setpoint {temperature}°C to {topic}")
 
-            if result.rc == mqtt.MQTT_ERR_SUCCESS:
-                logger.info(f"Published setpoint: {temperature}°C")
-                return True
-            else:
-                logger.error(f"Failed to publish setpoint: {result.rc}")
-                return False
+            return True
 
         except Exception as e:
             logger.error(f"Error publishing setpoint: {e}")
             return False
 
     def publish_mode(self, mode: str) -> bool:
-        """Publish mode command (on/off/auto)"""
+        """Publish mode command via EVU control (on/off/auto)
+
+        EVU (Energy Utility) port blocks compressor when active:
+        - mode='off' -> EVU=1 (block compressor)
+        - mode='on' or 'auto' -> EVU=0 (allow compressor)
+        """
         try:
             if mode not in ["on", "off", "auto"]:
                 logger.error(f"Invalid mode: {mode}")
                 return False
 
-            topic = f"thermiq/{self.device_id}/control/mode"
-            payload = json.dumps({"value": mode})
+            # EVU: 1 = block compressor (OFF), 0 = allow compressor (ON/AUTO)
+            evu_value = 1 if mode == "off" else 0
+
+            # Publish to ThermIQ EVU control topic
+            topic = f"ThermIQ/{self.device_id}/set/EVU"
+            payload = str(evu_value)
 
             result = self.client.publish(topic, payload, qos=1)
 
             if result.rc == mqtt.MQTT_ERR_SUCCESS:
-                logger.info(f"Published mode: {mode}")
+                logger.info(f"Published EVU={evu_value} (mode={mode})")
                 return True
             else:
-                logger.error(f"Failed to publish mode: {result.rc}")
+                logger.error(f"Failed to publish EVU command: {result.rc}")
                 return False
 
         except Exception as e:

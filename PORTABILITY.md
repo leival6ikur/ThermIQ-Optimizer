@@ -9,8 +9,8 @@
 - Automatic detection of development vs. packaged mode
 - Cross-platform support (Mac/Windows/Linux)
 - Proper user data directory handling:
-  - **Mac**: `~/Library/Application Support/ThermIQ`
-  - **Windows**: `%APPDATA%\ThermIQ`
+  - **Mac**: `~/Library/Application Support/Thermi-Nator`
+  - **Windows**: `%APPDATA%\Thermi-Nator`
   - **Development**: `./data`
 
 **Key Functions:**
@@ -87,7 +87,7 @@
 ```
 
 **Output:**
-- `dist/ThermIQ.app` - Standalone .app bundle
+- `dist/Thermi-Nator.app` - Standalone .app bundle
 - Includes Python runtime, dependencies, and Mosquitto
 - No external dependencies needed
 
@@ -97,7 +97,7 @@ pyinstaller build_windows.spec
 ```
 
 **Output:**
-- `dist/ThermIQ/ThermIQ.exe` - Portable executable
+- `dist/Thermi-Nator/Thermi-Nator.exe` - Portable executable
 - All DLLs and dependencies included
 
 ---
@@ -106,7 +106,7 @@ pyinstaller build_windows.spec
 
 ### Before (Development Only)
 ```
-ThermIQ/
+Thermi-Nator/
 ├── backend/
 ├── config/config.yaml    # Hardcoded location
 └── data/                 # Hardcoded location
@@ -114,7 +114,7 @@ ThermIQ/
 
 ### After (Portable)
 ```
-ThermIQ/
+Thermi-Nator/
 ├── backend/
 │   └── app/
 │       ├── paths.py               # ✨ NEW - Path management
@@ -137,15 +137,15 @@ ThermIQ/
 
 ### Packaged (Mac .app)
 ```
-ThermIQ.app/
+Thermi-Nator.app/
 ├── Contents/
 │   ├── MacOS/
-│   │   └── ThermIQ              # Main executable
+│   │   └── Thermi-Nator              # Main executable
 │   └── Resources/
 │       ├── mosquitto/            # Embedded broker
 │       └── config/               # Config example
 
-~/Library/Application Support/ThermIQ/  # User data
+~/Library/Application Support/Thermi-Nator/  # User data
 ├── config.yaml                   # User config
 ├── thermiq.db                    # Database
 ├── mosquitto.conf                # Broker config
@@ -154,14 +154,14 @@ ThermIQ.app/
 
 ### Packaged (Windows .exe)
 ```
-ThermIQ/
-├── ThermIQ.exe                   # Main executable
+Thermi-Nator/
+├── Thermi-Nator.exe                   # Main executable
 ├── mosquitto/
 │   ├── mosquitto.exe             # Embedded broker
 │   └── *.dll                     # Required libraries
 └── config/                       # Config example
 
-%APPDATA%\ThermIQ\                # User data
+%APPDATA%\Thermi-Nator\                # User data
 ├── config.yaml
 ├── thermiq.db
 ├── mosquitto.conf
@@ -208,10 +208,10 @@ open http://localhost:8000
 ./build.sh
 
 # 2. Run built app
-open dist/ThermIQ.app
+open dist/Thermi-Nator.app
 
 # 3. Check logs
-tail -f ~/Library/Application\ Support/ThermIQ/logs/thermiq.log
+tail -f ~/Library/Application\ Support/Thermi-Nator/logs/thermiq.log
 ```
 
 ---
@@ -250,7 +250,7 @@ tail -f ~/Library/Application\ Support/ThermIQ/logs/thermiq.log
 
 ## Implementation Complete 🎉
 
-The ThermIQ application is now fully portable and ready for packaging!
+The Thermi-Nator application is now fully portable and ready for packaging!
 
 **Estimated Refactor Time**: 2 hours (completed)  
 **Files Modified**: 4  

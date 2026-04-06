@@ -1,6 +1,7 @@
 """
-Configuration management for ThermIQ
+Configuration management for Thermi-Nator
 """
+import os
 import yaml
 import logging
 import shutil
@@ -68,10 +69,10 @@ class Config:
                 'retry_attempts': 3,
             },
             'location': {
-                'address': 'Sirkli 6, Lombi küla, Tartu vald, Estonia',
-                'latitude': 58.3780,
-                'longitude': 26.7290,
-                'timezone': 'Europe/Tallinn',
+                'address': os.getenv('THERMIQ_ADDRESS', ''),
+                'latitude': float(os.getenv('THERMIQ_LATITUDE', '0')),
+                'longitude': float(os.getenv('THERMIQ_LONGITUDE', '0')),
+                'timezone': os.getenv('THERMIQ_TIMEZONE', 'UTC'),
             },
             'optimization': {
                 'strategy': 'balanced',

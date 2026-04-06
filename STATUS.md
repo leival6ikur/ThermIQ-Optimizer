@@ -1,4 +1,4 @@
-# ThermIQ Project Status
+# Thermi-Nator Project Status
 
 **Last Updated**: April 2, 2026  
 **Phase**: MVP Backend Complete ✅  
@@ -6,7 +6,7 @@
 
 ## 🎯 Project Overview
 
-Smart heat pump control system for **Thermia Diplomat Optimum G3** using **ThermIQ-ROOM2LP** controller with Nord Pool (Estonia) price optimization.
+Smart heat pump control system for **Thermia Diplomat Optimum G3** using **Thermi-Nator-ROOM2LP** controller with Nord Pool (Estonia) price optimization.
 
 **Goal**: Reduce heating costs by 20-40% through intelligent scheduling based on electricity prices.
 
@@ -40,7 +40,7 @@ Smart heat pump control system for **Thermia Diplomat Optimum G3** using **Therm
 ### Key Files Created
 
 ```
-ThermIQ/
+Thermi-Nator/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py                    ✅ FastAPI entry point
@@ -133,7 +133,7 @@ ThermIQ/
 
 ## 🔮 Phase 3: Production Deployment (FUTURE)
 
-When ThermIQ-ROOM2LP device arrives:
+When Thermi-Nator-ROOM2LP device arrives:
 
 ### Device Setup
 - [ ] Connect to heat pump EXT interface
@@ -362,8 +362,8 @@ mosquitto_sub -h localhost -t "thermiq/#" -v
 
 ## 🔗 Resources
 
-- **ThermIQ Documentation**: https://www.thermiq.net/thermiq/
-- **ThermIQ GitHub**: https://github.com/ThermIQ
+- **Thermi-Nator Documentation**: https://www.thermiq.net/thermiq/
+- **Thermi-Nator GitHub**: https://github.com/Thermi-Nator
 - **Nord Pool API**: https://www.nordpoolgroup.com/
 - **Mosquitto**: https://mosquitto.org/
 - **FastAPI**: https://fastapi.tiangolo.com/

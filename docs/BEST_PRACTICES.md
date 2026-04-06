@@ -1,4 +1,4 @@
-# ThermIQ Best Practices Guide
+# Thermi-Nator Best Practices Guide
 
 Proven strategies for maximizing savings and system performance.
 
@@ -332,7 +332,7 @@ Prepare: For next winter
 - **Usage:** 45-50°C (comfortable showers)
 - **Economy:** 50-55°C (good balance)
 
-**ThermIQ strategy:**
+**Thermi-Nator strategy:**
 - Heat to 60°C during cheap hours
 - Maintain 55°C minimum
 - Use stored hot water during expensive hours
@@ -718,5 +718,5 @@ Alerts addressed <24 hours
 ---
 
 **Last Updated:** April 3, 2026  
-**Contributors:** ThermIQ team + community feedback  
+**Contributors:** Thermi-Nator team + community feedback  
 **Next Review:** Quarterly or when new strategies emerge

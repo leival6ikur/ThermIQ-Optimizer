@@ -1,5 +1,5 @@
 """
-Pydantic models for ThermIQ Heat Pump Optimizer
+Pydantic models for Thermi-Nator Heat Pump Optimizer
 """
 from datetime import datetime
 from typing import Optional, List
@@ -17,6 +17,8 @@ class TemperatureReading(BaseModel):
     brine_in: Optional[float] = None
     brine_out: Optional[float] = None
     hot_water: Optional[float] = None
+    power: Optional[float] = None
+    heating: Optional[bool] = None
 
     class Config:
         populate_by_name = True

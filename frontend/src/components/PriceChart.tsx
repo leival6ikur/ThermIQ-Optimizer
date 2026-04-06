@@ -146,6 +146,20 @@ export const PriceChart: React.FC<PriceChartProps> = ({
     return '#f59e0b'; // Amber - medium
   };
 
+  // Check if tomorrow's data is available
+  const isTomorrowDataMissing = viewMode === 'tomorrow' && chartData.length === 0;
+  const isTomorrowDataPartial = viewMode === 'tomorrow' && chartData.length > 0 && chartData.length < 24;
+
+  // Dismissable state (resets on page reload)
+  const [dismissedMissing, setDismissedMissing] = React.useState(false);
+  const [dismissedPartial, setDismissedPartial] = React.useState(false);
+
+  // Reset dismissed state when view mode changes
+  React.useEffect(() => {
+    setDismissedMissing(false);
+    setDismissedPartial(false);
+  }, [viewMode]);
+
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-4">
@@ -202,6 +216,90 @@ export const PriceChart: React.FC<PriceChartProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Tomorrow's Data Unavailable Indicator */}
+      {isTomorrowDataMissing && !dismissedMissing && (
+        <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-start gap-3">
+            <svg
+              className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                Tomorrow's prices not available yet
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                Nord Pool publishes next day prices around <strong>13:00 EET</strong>. Check back after that time.
+              </p>
+            </div>
+            <button
+              onClick={() => setDismissedMissing(true)}
+              className="flex-shrink-0 text-blue-400 hover:text-blue-600 dark:text-blue-500 dark:hover:text-blue-300 transition-colors"
+              aria-label="Dismiss"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isTomorrowDataPartial && !dismissedPartial && (
+        <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <div className="flex items-start gap-3">
+            <svg
+              className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                Partial data ({chartData.length}/24 hours)
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                Tomorrow's prices are being published. Full data typically available after 13:00 EET.
+              </p>
+            </div>
+            <button
+              onClick={() => setDismissedPartial(true)}
+              className="flex-shrink-0 text-amber-400 hover:text-amber-600 dark:text-amber-500 dark:hover:text-amber-300 transition-colors"
+              aria-label="Dismiss"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />

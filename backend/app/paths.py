@@ -1,5 +1,5 @@
 """
-Path management for ThermIQ - supports both development and packaged modes
+Path management for Thermi-Nator - supports both development and packaged modes
 
 Handles paths correctly whether running as:
 - Python script in development
@@ -21,9 +21,9 @@ def get_base_dir() -> Path:
     """
     Get the base directory of the application.
 
-    Development: /path/to/ThermIQ/backend
-    Packaged Mac: /Applications/ThermIQ.app/Contents/Resources
-    Packaged Windows: C:\\Program Files\\ThermIQ
+    Development: /path/to/Thermi-Nator/backend
+    Packaged Mac: /Applications/Thermi-Nator.app/Contents/Resources
+    Packaged Windows: C:\\Program Files\\Thermi-Nator
     """
     if is_frozen():
         # Running as bundled executable
@@ -42,9 +42,9 @@ def get_app_dir() -> Path:
     """
     Get the application directory (one level up from base).
 
-    Development: /path/to/ThermIQ
-    Packaged Mac: /Applications/ThermIQ.app/Contents
-    Packaged Windows: C:\\Program Files\\ThermIQ
+    Development: /path/to/Thermi-Nator
+    Packaged Mac: /Applications/Thermi-Nator.app/Contents
+    Packaged Windows: C:\\Program Files\\Thermi-Nator
     """
     if is_frozen():
         if platform.system() == 'Darwin':
@@ -52,7 +52,7 @@ def get_app_dir() -> Path:
         else:
             return Path(sys.executable).parent
     else:
-        # Development - go up from backend to ThermIQ root
+        # Development - go up from backend to Thermi-Nator root
         return get_base_dir().parent
 
 
@@ -60,20 +60,20 @@ def get_data_dir() -> Path:
     """
     Get the data directory for user data (config, database, logs).
 
-    Development: /path/to/ThermIQ/data
-    Packaged Mac: ~/Library/Application Support/ThermIQ
-    Packaged Windows: %APPDATA%\\ThermIQ
+    Development: /path/to/Thermi-Nator/data
+    Packaged Mac: ~/Library/Application Support/Thermi-Nator
+    Packaged Windows: %APPDATA%\\Thermi-Nator
 
     User data should be writable and persist across updates.
     """
     if is_frozen():
         if platform.system() == 'Darwin':
             # Mac: Use Application Support
-            data_dir = Path.home() / 'Library' / 'Application Support' / 'ThermIQ'
+            data_dir = Path.home() / 'Library' / 'Application Support' / 'Thermi-Nator'
         elif platform.system() == 'Windows':
             # Windows: Use AppData
             appdata = os.environ.get('APPDATA', str(Path.home()))
-            data_dir = Path(appdata) / 'ThermIQ'
+            data_dir = Path(appdata) / 'Thermi-Nator'
         else:
             # Linux fallback
             data_dir = Path.home() / '.thermiq'
@@ -107,7 +107,7 @@ def get_mosquitto_dir() -> Path:
     """
     Get directory containing Mosquitto binaries.
 
-    Development: /path/to/ThermIQ/mosquitto
+    Development: /path/to/Thermi-Nator/mosquitto
     Packaged: Inside app bundle/resources
     """
     if is_frozen():

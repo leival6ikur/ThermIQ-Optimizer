@@ -1,4 +1,4 @@
-# ThermIQ Heat Pump Optimizer - User Guide
+# Thermi-Nator Heat Pump Optimizer - User Guide
 
 **Version:** 1.0  
 **Last Updated:** April 3, 2026
@@ -21,9 +21,9 @@
 
 ## Introduction
 
-### What is ThermIQ?
+### What is Thermi-Nator?
 
-ThermIQ is an intelligent heat pump control system that automatically optimizes your heating schedule based on electricity prices from Nord Pool. The system:
+Thermi-Nator is an intelligent heat pump control system that automatically optimizes your heating schedule based on electricity prices from Nord Pool. The system:
 
 - ✅ Monitors your heat pump in real-time via MQTT
 - ✅ Fetches hourly electricity prices from Nord Pool
@@ -34,7 +34,7 @@ ThermIQ is an intelligent heat pump control system that automatically optimizes 
 
 ### How It Works
 
-1. **Price Monitoring**: Every day at 13:00 UTC, ThermIQ fetches the latest electricity prices
+1. **Price Monitoring**: Every day at 13:00 UTC, Thermi-Nator fetches the latest electricity prices
 2. **Schedule Optimization**: The system calculates when to heat based on:
    - Current electricity prices
    - Building thermal properties
@@ -109,7 +109,7 @@ Go to **Settings** page:
 ### Header Section
 
 **Left Side:**
-- **Title**: ThermIQ Optimizer
+- **Title**: Thermi-Nator Optimizer
 - **Location**: Your address (configured in settings)
 
 **Right Side:**
@@ -286,7 +286,7 @@ Advanced analytics and performance metrics.
 
 ## Smart Alerts
 
-ThermIQ continuously monitors system performance and generates alerts when attention is needed.
+Thermi-Nator continuously monitors system performance and generates alerts when attention is needed.
 
 ### Alert Severities
 
@@ -737,7 +737,7 @@ Power: HIGH ────────╱╱╱╱ HIGH ╲╲╲╲ HIGH
 ### Support
 
 **Getting Help:**
-- GitHub Issues: https://github.com/leival6ikur/ThermIQ-Optimizer/issues
+- GitHub Issues: https://github.com/leival6ikur/Thermi-Nator-Optimizer/issues
 - Documentation: `/docs` folder in repository
 - Troubleshooting Guide: `TROUBLESHOOTING.md`
 - FAQ: `FAQ.md`

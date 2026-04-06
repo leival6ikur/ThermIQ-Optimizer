@@ -1,4 +1,4 @@
-# ThermIQ Configuration Guide
+# Thermi-Nator Configuration Guide
 
 Complete reference for system configuration files and settings.
 
@@ -6,9 +6,9 @@ Complete reference for system configuration files and settings.
 
 ## Configuration File Structure
 
-ThermIQ uses a single YAML configuration file: `data/config.yaml`
+Thermi-Nator uses a single YAML configuration file: `data/config.yaml`
 
-**Location:** `/path/to/ThermIQ/data/config.yaml`
+**Location:** `/path/to/Thermi-Nator/data/config.yaml`
 
 **Format:** YAML (human-readable, indentation-sensitive)
 
@@ -19,7 +19,7 @@ ThermIQ uses a single YAML configuration file: `data/config.yaml`
 ## Complete Configuration Reference
 
 ```yaml
-# ThermIQ Configuration File
+# Thermi-Nator Configuration File
 # Last updated: 2026-04-03
 
 # === General Settings ===
@@ -126,7 +126,7 @@ building:
 
 # === Heat Pump Configuration ===
 heat_pump:
-  manufacturer: "NIBE"  # Or: CTC, IVT, ThermIQ, etc.
+  manufacturer: "NIBE"  # Or: CTC, IVT, Thermi-Nator, etc.
   model: "F1255"
   type: "ground_source"  # ground_source | air_source | air_water
   
@@ -208,7 +208,7 @@ api:
 # === Frontend Configuration ===
 frontend:
   port: 3000
-  title: "ThermIQ Optimizer"
+  title: "Thermi-Nator Optimizer"
   theme: "light"  # light | dark | auto
   
   # Dashboard settings
@@ -368,7 +368,7 @@ password: "secret123"
 ```
 
 **Topics customization:**
-- Change if multiple ThermIQ instances
+- Change if multiple Thermi-Nator instances
 - Or if integrating with existing MQTT setup
 - Must match heat pump configuration
 
@@ -684,7 +684,7 @@ cp data/config.yaml data/config.yaml.backup
 ```
 
 **Automatic backups:**
-- ThermIQ backs up config before overwriting
+- Thermi-Nator backs up config before overwriting
 - Located in: `data/backups/`
 - Format: `config_YYYYMMDD_HHMMSS.yaml`
 

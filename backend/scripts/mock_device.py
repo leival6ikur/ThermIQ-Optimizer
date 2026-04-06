@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Mock ThermIQ-ROOM2LP Device Simulator
+Mock Thermi-Nator-ROOM2LP Device Simulator
 
-Simulates a real ThermIQ device for development and testing purposes.
+Simulates a real Thermi-Nator device for development and testing purposes.
 Publishes sensor data every 60 seconds (1 minute) and responds to control commands via MQTT.
 """
 import json
@@ -22,14 +22,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class MockThermIQDevice:
-    """Simulates ThermIQ-ROOM2LP device behavior"""
+class MockThermiNatorDevice:
+    """Simulates Thermi-Nator-ROOM2LP device behavior"""
 
     def __init__(
         self,
         broker: str = "localhost",
         port: int = 1883,
-        device_id: str = "thermiq_room2lp"
+        device_id: str = "thermiq_room2lp",
+        username: str = None,
+        password: str = None
     ):
         self.broker = broker
         self.port = port
@@ -58,6 +60,11 @@ class MockThermIQDevice:
         self.client = mqtt.Client(client_id=f"mock_{device_id}")
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
+
+        # Set credentials if provided
+        if username and password:
+            self.client.username_pw_set(username, password)
+
         self.connected = False
 
     def on_connect(self, client, userdata, flags, rc):
@@ -237,7 +244,7 @@ class MockThermIQDevice:
 
     def run(self):
         """Main run loop"""
-        logger.info(f"Starting mock ThermIQ device: {self.device_id}")
+        logger.info(f"Starting mock Thermi-Nator device: {self.device_id}")
         logger.info(f"Connecting to MQTT broker: {self.broker}:{self.port}")
 
         try:
@@ -275,10 +282,42 @@ class MockThermIQDevice:
 def main():
     """Entry point"""
     import sys
+    import os
+    from pathlib import Path
 
-    # Parse command line arguments
-    broker = sys.argv[1] if len(sys.argv) > 1 else "localhost"
-    device = MockThermIQDevice(broker=broker)
+    # Add parent directory to path so we can import app modules
+    script_dir = Path(__file__).resolve().parent
+    backend_dir = script_dir.parent
+    sys.path.insert(0, str(backend_dir))
+
+    # Load config
+    try:
+        from app.config import get_config
+        config = get_config()
+        mqtt_config = config.mqtt
+
+        broker = mqtt_config.get('broker', 'localhost')
+        port = mqtt_config.get('port', 1883)
+        device_id = mqtt_config.get('device_id', 'thermiq_room2lp')
+        username = mqtt_config.get('username')
+        password = mqtt_config.get('password')
+
+        logger.info(f"Loaded config: broker={broker}, port={port}, username={'***' if username else 'None'}")
+    except Exception as e:
+        logger.warning(f"Could not load config: {e}. Using defaults.")
+        broker = sys.argv[1] if len(sys.argv) > 1 else "localhost"
+        port = 1883
+        device_id = "thermiq_room2lp"
+        username = None
+        password = None
+
+    device = MockThermiNatorDevice(
+        broker=broker,
+        port=port,
+        device_id=device_id,
+        username=username,
+        password=password
+    )
     device.run()
 
 

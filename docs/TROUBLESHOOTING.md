@@ -1,4 +1,4 @@
-# ThermIQ Troubleshooting Guide
+# Thermi-Nator Troubleshooting Guide
 
 Quick solutions for common problems.
 
@@ -690,14 +690,14 @@ Quick solutions for common problems.
    Create `/etc/systemd/system/thermiq-backend.service`:
    ```ini
    [Unit]
-   Description=ThermIQ Backend
+   Description=Thermi-Nator Backend
    After=network.target mosquitto.service
    
    [Service]
    Type=simple
    User=pi
-   WorkingDirectory=/home/pi/ThermIQ
-   ExecStart=/home/pi/ThermIQ/backend/venv/bin/python -m app.main
+   WorkingDirectory=/home/pi/Thermi-Nator
+   ExecStart=/home/pi/Thermi-Nator/backend/venv/bin/python -m app.main
    Restart=always
    
    [Install]
@@ -752,7 +752,7 @@ Include:
 
 ### Where to Get Help
 
-- **GitHub Issues**: https://github.com/leival6ikur/ThermIQ-Optimizer/issues
+- **GitHub Issues**: https://github.com/leival6ikur/Thermi-Nator-Optimizer/issues
 - **Include "logs"** from:
   - `data/logs/thermiq.log`
   - Browser console (F12)

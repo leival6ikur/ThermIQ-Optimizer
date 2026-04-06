@@ -1,13 +1,13 @@
 # MQTT Setup Guide
 
-Complete guide for setting up the Mosquitto MQTT broker for ThermIQ.
+Complete guide for setting up the Mosquitto MQTT broker for Thermi-Nator.
 
 ## What is MQTT?
 
 MQTT (Message Queuing Telemetry Transport) is a lightweight messaging protocol perfect for IoT devices. Think of it as a post office:
 
 - **Broker** (Mosquitto): The central post office that receives and routes messages
-- **Publisher** (ThermIQ device): Sends temperature data to broker every 30 seconds
+- **Publisher** (Thermi-Nator device): Sends temperature data to broker every 30 seconds
 - **Subscriber** (Backend): Receives temperature data from broker
 - **Topics**: Like mailbox addresses, e.g., `thermiq/device123/temperature/indoor`
 
@@ -142,7 +142,7 @@ net stop mosquitto && net start mosquitto  # Windows
 
 ### Using Command Line Tools
 
-**Subscribe to all ThermIQ topics:**
+**Subscribe to all Thermi-Nator topics:**
 ```bash
 mosquitto_sub -h localhost -t "thermiq/#" -v
 ```
@@ -176,9 +176,9 @@ python scripts/mqtt_monitor.py
 
 This will display all MQTT messages in a formatted view.
 
-## ThermIQ Topics
+## Thermi-Nator Topics
 
-The ThermIQ-ROOM2LP device publishes to these topics:
+The Thermi-Nator-ROOM2LP device publishes to these topics:
 
 ### Sensor Topics (Published by Device)
 
@@ -307,7 +307,7 @@ keyfile /path/to/server.key
 require_certificate true
 ```
 
-## Integration with ThermIQ
+## Integration with Thermi-Nator
 
 ### 1. Mock Device (Development)
 
@@ -324,7 +324,7 @@ The mock device will:
 
 ### 2. Real Device (Production)
 
-When ThermIQ-ROOM2LP arrives:
+When Thermi-Nator-ROOM2LP arrives:
 1. Connect to heat pump EXT interface
 2. Power via USB (2A minimum)
 3. Configure WiFi via device setup
@@ -350,7 +350,7 @@ curl http://localhost:8000/health
 - **Mosquitto Documentation**: https://mosquitto.org/documentation/
 - **MQTT Protocol Specification**: https://mqtt.org/
 - **MQTT Explorer**: http://mqtt-explorer.com/
-- **ThermIQ Documentation**: https://www.thermiq.net/
+- **Thermi-Nator Documentation**: https://www.thermiq.net/
 
 ## Quick Reference
 

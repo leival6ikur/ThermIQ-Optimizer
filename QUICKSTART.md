@@ -1,6 +1,6 @@
-# ThermIQ Quick Start Guide
+# Thermi-Nator Quick Start Guide
 
-Get the ThermIQ Heat Pump Optimizer running in 5 minutes!
+Get the Thermi-Nator Heat Pump Optimizer running in 5 minutes!
 
 ## Prerequisites Check
 
@@ -75,7 +75,7 @@ curl http://localhost:8000/docs  # Open in browser
 
 ### Mock Device
 ```
-2024-03-15 14:30:00 - INFO - Starting mock ThermIQ device
+2024-03-15 14:30:00 - INFO - Starting mock Thermi-Nator device
 2024-03-15 14:30:01 - INFO - Connected to MQTT broker
 2024-03-15 14:30:01 - INFO - Published: Indoor=21.0°C Outdoor=5.0°C Heating=ON Power=1200W
 ```

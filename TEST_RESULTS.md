@@ -1,4 +1,4 @@
-# ThermIQ Portability Refactor - Test Results ✅
+# Thermi-Nator Portability Refactor - Test Results ✅
 
 **Test Date**: April 2, 2026  
 **Platform**: macOS (Darwin)  
@@ -14,15 +14,15 @@
 {
   "frozen": false,
   "platform": "Darwin",
-  "base_dir": "/Users/hvissel/Documents/ThermIQ/backend",
-  "app_dir": "/Users/hvissel/Documents/ThermIQ",
-  "data_dir": "/Users/hvissel/Documents/ThermIQ/data",
-  "config_path": "/Users/hvissel/Documents/ThermIQ/data/config.yaml",
-  "database_path": "/Users/hvissel/Documents/ThermIQ/data/thermiq.db",
-  "log_dir": "/Users/hvissel/Documents/ThermIQ/data/logs",
-  "mosquitto_dir": "/Users/hvissel/Documents/ThermIQ/mosquitto",
-  "mosquitto_executable": "/Users/hvissel/Documents/ThermIQ/mosquitto/mac/mosquitto",
-  "frontend_dir": "/Users/hvissel/Documents/ThermIQ/frontend/dist"
+  "base_dir": "/Users/hvissel/Documents/Thermi-Nator/backend",
+  "app_dir": "/Users/hvissel/Documents/Thermi-Nator",
+  "data_dir": "/Users/hvissel/Documents/Thermi-Nator/data",
+  "config_path": "/Users/hvissel/Documents/Thermi-Nator/data/config.yaml",
+  "database_path": "/Users/hvissel/Documents/Thermi-Nator/data/thermiq.db",
+  "log_dir": "/Users/hvissel/Documents/Thermi-Nator/data/logs",
+  "mosquitto_dir": "/Users/hvissel/Documents/Thermi-Nator/mosquitto",
+  "mosquitto_executable": "/Users/hvissel/Documents/Thermi-Nator/mosquitto/mac/mosquitto",
+  "frontend_dir": "/Users/hvissel/Documents/Thermi-Nator/frontend/dist"
 }
 ```
 
@@ -38,7 +38,7 @@
 
 **Broker Manager**: ✅ Loads successfully  
 **Fallback Logic**: ✅ Uses system broker when available  
-**Binary Location**: `/Users/hvissel/Documents/ThermIQ/mosquitto/mac/mosquitto`  
+**Binary Location**: `/Users/hvissel/Documents/Thermi-Nator/mosquitto/mac/mosquitto`  
 **Binary Exists**: ✅ Yes  
 **Binary Executable**: ✅ Yes  
 
@@ -47,7 +47,7 @@
 ### 3. Configuration System ✅
 
 **Auto-Creation**: ✅ Config created from defaults  
-**Path**: `/Users/hvissel/Documents/ThermIQ/data/config.yaml`  
+**Path**: `/Users/hvissel/Documents/Thermi-Nator/data/config.yaml`  
 **Setup Tracking**: ✅ Working  
 
 **Before Setup**:
@@ -69,13 +69,13 @@
 ```
 INFO: Started server process
 INFO: Waiting for application startup.
-INFO: Starting ThermIQ Heat Pump Optimizer...
+INFO: Starting Thermi-Nator Heat Pump Optimizer...
 INFO: Running in DEVELOPMENT mode
 INFO: System Mosquitto broker detected, using existing broker
 INFO: Database initialized successfully
 INFO: MQTT manager started
 INFO: Optimization engine initialized: strategy=balanced, target=21.0°C
-INFO: ThermIQ backend started successfully
+INFO: Thermi-Nator backend started successfully
 ```
 
 **Status**: ✅ Clean startup, no errors
@@ -120,7 +120,7 @@ POST /setup/moderate
 GET /
 → 200 OK
 → {
-    "name": "ThermIQ Heat Pump Optimizer",
+    "name": "Thermi-Nator Heat Pump Optimizer",
     "version": "1.0.0",
     "status": "running",
     "docs": "/docs"
@@ -320,7 +320,7 @@ All core functionality works:
 
 **After Refactor**:
 ```
-1. Open ThermIQ.app
+1. Open Thermi-Nator.app
 2. Select region in wizard
 3. Click "Start Optimizing"
 4. Done! ✨

@@ -197,7 +197,7 @@ def get_setup_html() -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ThermIQ Setup Wizard</title>
+    <title>Thermi-Nator Setup Wizard</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -328,7 +328,7 @@ def get_setup_html() -> str:
 </head>
 <body>
     <div class="container">
-        <h1>🏠 Welcome to ThermIQ</h1>
+        <h1>🏠 Welcome to Thermi-Nator</h1>
         <p class="subtitle">Let's set up your smart heat pump optimizer</p>
 
         <div class="mode-selector">

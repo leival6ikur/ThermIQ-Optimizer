@@ -1,4 +1,4 @@
-# ThermIQ Optimizer - Product Analysis
+# Thermi-Nator Optimizer - Product Analysis
 
 **Prepared by:** Senior Product Manager Analysis  
 **Date:** April 3, 2026  
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-ThermIQ Optimizer is a smart heat pump controller that reduces energy costs by 20-40% through real-time electricity price optimization. Unlike competitors who use static time-of-use schedules, ThermIQ integrates directly with Nord Pool wholesale prices and intelligently pre-heats during cheap hours while maintaining comfort. The product has strong product-market fit for Nordic/Baltic markets with ground source heat pumps and hourly electricity pricing.
+Thermi-Nator Optimizer is a smart heat pump controller that reduces energy costs by 20-40% through real-time electricity price optimization. Unlike competitors who use static time-of-use schedules, Thermi-Nator integrates directly with Nord Pool wholesale prices and intelligently pre-heats during cheap hours while maintaining comfort. The product has strong product-market fit for Nordic/Baltic markets with ground source heat pumps and hourly electricity pricing.
 
 **Key Differentiators:**
 - Only optimizer with real-time Nord Pool integration
@@ -43,17 +43,17 @@ ThermIQ Optimizer is a smart heat pump controller that reduces energy costs by 2
 - **Weaknesses:** Poor UX, limited optimization features, no price awareness
 - **Market Position:** Default option for heat pump owners
 
-### Market Gaps ThermIQ Can Own
+### Market Gaps Thermi-Nator Can Own
 
 1. **Dynamic Price Optimization** ⭐
    - No competitor offers real-time wholesale price integration
    - Competitors rely on static TOU schedules that don't adapt
-   - ThermIQ can adjust hourly based on actual Nord Pool prices (2-40¢/kWh swings)
+   - Thermi-Nator can adjust hourly based on actual Nord Pool prices (2-40¢/kWh swings)
 
 2. **Thermal Mass Strategy** ⭐
    - Competitors focus on immediate comfort only
    - Miss opportunity to pre-heat during cheap hours
-   - ThermIQ leverages building thermal inertia for cost arbitrage
+   - Thermi-Nator leverages building thermal inertia for cost arbitrage
 
 3. **Ground Source Visibility** ⭐
    - No competitor monitors brine loop health
@@ -63,7 +63,7 @@ ThermIQ Optimizer is a smart heat pump controller that reduces energy costs by 2
 4. **Cost Transparency** ⭐
    - Competitors show "estimated savings" only
    - Users can't see real-time cost impact
-   - ThermIQ tracks actual cost with hourly granularity
+   - Thermi-Nator tracks actual cost with hourly granularity
 
 ---
 
@@ -98,7 +98,7 @@ ThermIQ Optimizer is a smart heat pump controller that reduces energy costs by 2
 - Can't correlate actions with costs
 - **Impact:** Surprise bills, reactive rather than proactive management
 
-### What ThermIQ Solves Well ✅
+### What Thermi-Nator Solves Well ✅
 
 1. **Real-time cost tracking** - Hourly granularity, see impact immediately
 2. **Automated price-based scheduling** - 3 strategies (aggressive/balanced/conservative)
@@ -204,7 +204,7 @@ Users need proof of ROI to justify subscription or recommend to others. "You sav
 
 ## 4. Product Positioning & Go-to-Market
 
-### What Makes ThermIQ Unique
+### What Makes Thermi-Nator Unique
 
 **The ONLY heat pump optimizer that combines:**
 
@@ -271,7 +271,7 @@ Users need proof of ROI to justify subscription or recommend to others. "You sav
 
 #### Primary Value Prop (Cost Savings)
 
-> **"Cut your heat pump energy costs by 20-40% with smart, price-aware heating. ThermIQ learns your home's thermal behavior and automatically heats when electricity is cheapest - while keeping you comfortable."**
+> **"Cut your heat pump energy costs by 20-40% with smart, price-aware heating. Thermi-Nator learns your home's thermal behavior and automatically heats when electricity is cheapest - while keeping you comfortable."**
 
 **Supporting Points:**
 - Typical savings: €30-120/month (€360-1,440/year)
@@ -332,7 +332,7 @@ Users need proof of ROI to justify subscription or recommend to others. "You sav
    - Mitigation: Monitor regulatory environment, maintain flexibility
 
 3. **Hardware Dependency** ⚠️
-   - Requires ThermIQ-ROOM2LP device (or compatible MQTT interface)
+   - Requires Thermi-Nator-ROOM2LP device (or compatible MQTT interface)
    - Mitigation: Document DIY alternatives, open protocol
 
 ---
@@ -441,7 +441,7 @@ Based on PM analysis, prioritize high-impact, lower-effort features:
 ### Hardware + Subscription Model (Recommended)
 
 **Hardware (One-time):**
-- ThermIQ-ROOM2LP device: €150-200
+- Thermi-Nator-ROOM2LP device: €150-200
 - Optional professional installation: €100-150
 - DIY supported (Raspberry Pi + sensors)
 
@@ -566,13 +566,13 @@ Based on PM analysis, prioritize high-impact, lower-effort features:
 
 ## Appendix: Files Analyzed
 
-- `/Users/hvissel/Documents/ThermIQ/README.md` - Product overview
-- `/Users/hvissel/Documents/ThermIQ/BACKLOG.md` - Feature roadmap
-- `/Users/hvissel/Documents/ThermIQ/frontend/src/pages/DashboardPage.tsx` - UI capabilities
-- `/Users/hvissel/Documents/ThermIQ/frontend/src/pages/InsightsPage.tsx` - Analytics features
-- `/Users/hvissel/Documents/ThermIQ/backend/app/services/optimization_engine.py` - Core algorithm
-- `/Users/hvissel/Documents/ThermIQ/backend/app/services/alert_service.py` - Monitoring logic
-- `/Users/hvissel/Documents/ThermIQ/backend/app/services/hot_water_service.py` - DHW tracking
+- `/Users/hvissel/Documents/Thermi-Nator/README.md` - Product overview
+- `/Users/hvissel/Documents/Thermi-Nator/BACKLOG.md` - Feature roadmap
+- `/Users/hvissel/Documents/Thermi-Nator/frontend/src/pages/DashboardPage.tsx` - UI capabilities
+- `/Users/hvissel/Documents/Thermi-Nator/frontend/src/pages/InsightsPage.tsx` - Analytics features
+- `/Users/hvissel/Documents/Thermi-Nator/backend/app/services/optimization_engine.py` - Core algorithm
+- `/Users/hvissel/Documents/Thermi-Nator/backend/app/services/alert_service.py` - Monitoring logic
+- `/Users/hvissel/Documents/Thermi-Nator/backend/app/services/hot_water_service.py` - DHW tracking
 
 ---
 

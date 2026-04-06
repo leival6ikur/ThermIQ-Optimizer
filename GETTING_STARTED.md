@@ -11,6 +11,59 @@ Simple step-by-step guide for setting up your heat pump optimizer when your Ther
 - **Ethernet cable** (or WiFi configured)
 - **Your home network** router access
 
+## 💿 Step 0: Prepare Raspberry Pi OS (15 minutes)
+
+**Important:** Raspberry Pis do **not** come with an OS pre-installed. You need to install it on a microSD card first.
+
+### Option A: Buy a Starter Kit (Easiest)
+
+Some retailers sell "Raspberry Pi Starter Kits" that include:
+- Raspberry Pi board
+- MicroSD card with Raspberry Pi OS **pre-installed**
+- Power supply, case, HDMI cable
+
+✅ **If you have a kit with pre-installed OS, skip to Step 1!**
+
+### Option B: Install OS Yourself
+
+**What you need:**
+- MicroSD card (16GB minimum, 32GB+ recommended)
+- Computer with SD card reader
+- 15 minutes
+
+**Steps:**
+
+1. **Download Raspberry Pi Imager** on your computer:
+   - Visit: https://www.raspberrypi.com/software/
+   - Download and install for your OS (Windows/Mac/Linux)
+
+2. **Flash the OS to microSD card:**
+   - Insert microSD card into your computer
+   - Open Raspberry Pi Imager
+   - Click **"CHOOSE OS"** → Select **"Raspberry Pi OS (64-bit)"** (recommended)
+   - Click **"CHOOSE STORAGE"** → Select your microSD card
+   - Click the **gear icon ⚙️** (Settings) to configure:
+     ```
+     ☑️ Set hostname: therminator
+     ☑️ Enable SSH (Use password authentication)
+     ☑️ Set username: pi
+     ☑️ Set password: [choose a password]
+     ☑️ Configure wireless LAN (optional but convenient)
+        - SSID: [your WiFi name]
+        - Password: [your WiFi password]
+        - Country: [your country]
+     ☑️ Set locale settings (timezone and keyboard)
+     ```
+   - Click **"SAVE"**
+   - Click **"WRITE"** and confirm
+   - Wait 5-10 minutes for the process to complete
+
+3. **Safely eject the card** when done
+
+4. **Insert the microSD card into your Raspberry Pi**
+
+💡 **Tip:** Pre-configuring SSH and WiFi saves time - your Pi will be ready to connect immediately when powered on!
+
 ## 🔌 Step 1: Physical Setup (5 minutes)
 
 1. **Install ThermIQ on your heat pump**

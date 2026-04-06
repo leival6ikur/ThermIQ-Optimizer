@@ -2,7 +2,7 @@
 
 ## 🎯 Mission Accomplished
 
-ThermIQ has been successfully refactored to be a **portable, out-of-the-box solution** for both Mac and Windows users!
+Thermi-Nator has been successfully refactored to be a **portable, out-of-the-box solution** for both Mac and Windows users!
 
 ---
 
@@ -13,8 +13,8 @@ ThermIQ has been successfully refactored to be a **portable, out-of-the-box solu
 - ✅ Auto-detects development vs. packaged mode
 - ✅ Cross-platform support (Mac/Windows/Linux)
 - ✅ User data in OS-appropriate locations:
-  - Mac: `~/Library/Application Support/ThermIQ`
-  - Windows: `%APPDATA%\ThermIQ`
+  - Mac: `~/Library/Application Support/Thermi-Nator`
+  - Windows: `%APPDATA%\Thermi-Nator`
   - Dev: `./data`
 
 ### 2. **Embedded MQTT Broker**
@@ -70,9 +70,9 @@ ThermIQ has been successfully refactored to be a **portable, out-of-the-box solu
 {
   "frozen": false,
   "platform": "Darwin",
-  "data_dir": "/Users/hvissel/Documents/ThermIQ/data",
-  "config_path": "/Users/hvissel/Documents/ThermIQ/data/config.yaml",
-  "mosquitto_executable": "/Users/hvissel/Documents/ThermIQ/mosquitto/mosquitto"
+  "data_dir": "/Users/hvissel/Documents/Thermi-Nator/data",
+  "config_path": "/Users/hvissel/Documents/Thermi-Nator/data/config.yaml",
+  "mosquitto_executable": "/Users/hvissel/Documents/Thermi-Nator/mosquitto/mosquitto"
 }
 ```
 
@@ -90,7 +90,7 @@ ThermIQ has been successfully refactored to be a **portable, out-of-the-box solu
 ### Mac Build
 ```bash
 ./build.sh
-# Output: dist/ThermIQ.app
+# Output: dist/Thermi-Nator.app
 ```
 
 **Bundle Contents:**
@@ -106,7 +106,7 @@ ThermIQ has been successfully refactored to be a **portable, out-of-the-box solu
 ```bash
 # (On Windows machine or VM)
 pyinstaller build_windows.spec
-# Output: dist/ThermIQ/ThermIQ.exe
+# Output: dist/Thermi-Nator/Thermi-Nator.exe
 ```
 
 ---
@@ -114,7 +114,7 @@ pyinstaller build_windows.spec
 ## 🎨 User Experience
 
 ### First Launch
-1. User opens ThermIQ.app or ThermIQ.exe
+1. User opens Thermi-Nator.app or Thermi-Nator.exe
 2. Application auto-starts embedded broker
 3. Redirects to beautiful setup wizard
 4. User selects region and preferences
@@ -133,7 +133,7 @@ pyinstaller build_windows.spec
 
 ### Development (Current)
 ```
-ThermIQ/
+Thermi-Nator/
 ├── backend/
 │   └── app/
 │       ├── paths.py ✨ NEW
@@ -151,14 +151,14 @@ ThermIQ/
 
 ### Packaged (Mac)
 ```
-ThermIQ.app/
+Thermi-Nator.app/
 ├── Contents/
-│   ├── MacOS/ThermIQ
+│   ├── MacOS/Thermi-Nator
 │   └── Resources/
 │       └── mosquitto/
 └── [User opens this]
 
-~/Library/Application Support/ThermIQ/
+~/Library/Application Support/Thermi-Nator/
 ├── config.yaml
 ├── thermiq.db
 └── logs/
@@ -166,11 +166,11 @@ ThermIQ.app/
 
 ### Packaged (Windows)
 ```
-ThermIQ/
-├── ThermIQ.exe [User runs this]
+Thermi-Nator/
+├── Thermi-Nator.exe [User runs this]
 └── mosquitto/
 
-%APPDATA%\ThermIQ\
+%APPDATA%\Thermi-Nator\
 ├── config.yaml
 ├── thermiq.db
 └── logs/

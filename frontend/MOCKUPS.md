@@ -1,4 +1,4 @@
-# ThermIQ Frontend Mockups
+# Thermi-Nator Frontend Mockups
 
 ## Design System
 
@@ -25,7 +25,7 @@ Background:#f9fafb (Light gray)
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│  🏠 ThermIQ                   [⚙️ Settings]  [👤 Menu]         │
+│  🏠 Thermi-Nator                   [⚙️ Settings]  [👤 Menu]         │
 ├────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌─────────────────────┐  ┌─────────────────┐                 │
@@ -276,7 +276,7 @@ Background:#f9fafb (Light gray)
 
 ```
 ┌──────────────────────┐
-│  🏠 ThermIQ      ≡   │
+│  🏠 Thermi-Nator      ≡   │
 ├──────────────────────┤
 │                      │
 │  ┌────────────────┐  │

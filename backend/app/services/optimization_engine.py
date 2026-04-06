@@ -1,7 +1,7 @@
 """
 Optimization Engine
 
-Price-based heating schedule optimization for ThermIQ heat pump.
+Price-based heating schedule optimization for Thermi-Nator heat pump.
 """
 import logging
 from datetime import datetime, time

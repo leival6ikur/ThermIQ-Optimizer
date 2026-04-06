@@ -172,15 +172,18 @@ def save_temperature_reading(reading):
 
     try:
         if _main_loop is None:
-            return  # Silently skip if not initialized
+            logger.warning("Cannot save temperature: event loop not initialized")
+            return
 
         if _main_loop.is_closed() or not _main_loop.is_running():
-            return  # Silently skip if loop not ready
+            logger.warning("Cannot save temperature: event loop not running")
+            return
 
         async def _save():
             try:
                 db = await get_database()
                 await db.save_temperature(reading)
+                logger.debug(f"Saved temperature: Indoor={reading.indoor}°C")
             except Exception as e:
                 logger.error(f"Error saving temperature: {e}")
 

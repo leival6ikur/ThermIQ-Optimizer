@@ -1,4 +1,4 @@
-# ThermIQ Heat Pump Optimizer
+# Thermi-Nator Heat Pump Optimizer
 
 Smart control system for Thermia Diplomat Optimum G3 heat pump with Nord Pool price optimization.
 
@@ -65,7 +65,7 @@ Open browser to `http://localhost:5173`
 
 ```
 ┌─────────────┐     MQTT      ┌─────────────┐
-│  ThermIQ    │◄─────────────►│  Mosquitto  │
+│  Thermi-Nator    │◄─────────────►│  Mosquitto  │
 │  ROOM2LP    │    30s pub    │   Broker    │
 └─────────────┘               └──────┬──────┘
                                      │
@@ -104,7 +104,7 @@ optimization:
 ## 🔌 Hardware Requirements
 
 - **Heat Pump**: Thermia Diplomat Optimum G3 (manufactured after March 2008)
-- **Controller**: ThermIQ-ROOM2LP WiFi adapter
+- **Controller**: Thermi-Nator-ROOM2LP WiFi adapter
 - **Connection**: EXT interface port on heat pump
 - **Power**: USB power supply (2A minimum)
 

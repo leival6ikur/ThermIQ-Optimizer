@@ -22,7 +22,7 @@ def on_connect(client, userdata, flags, rc):
     if rc == 0:
         logger.info("Connected to MQTT broker")
         client.subscribe("thermiq/#")
-        logger.info("Subscribed to thermiq/# (all ThermIQ topics)")
+        logger.info("Subscribed to thermiq/# (all Thermi-Nator topics)")
     else:
         logger.error(f"Connection failed with code {rc}")
 

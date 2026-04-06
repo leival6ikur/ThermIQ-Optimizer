@@ -1,14 +1,14 @@
-# ThermIQ - Frequently Asked Questions (FAQ)
+# Thermi-Nator - Frequently Asked Questions (FAQ)
 
-Quick answers to common questions about ThermIQ Heat Pump Optimizer.
+Quick answers to common questions about Thermi-Nator Heat Pump Optimizer.
 
 ---
 
 ## General Questions
 
-### What is ThermIQ?
+### What is Thermi-Nator?
 
-ThermIQ is a smart control system for ground source heat pumps that automatically optimizes heating schedules based on electricity prices from Nord Pool. It continuously monitors your system and adjusts heating to minimize costs while maintaining comfort.
+Thermi-Nator is a smart control system for ground source heat pumps that automatically optimizes heating schedules based on electricity prices from Nord Pool. It continuously monitors your system and adjusts heating to minimize costs while maintaining comfort.
 
 ### How much money can I save?
 
@@ -18,14 +18,14 @@ Most users see **20-40% reduction** in heating costs. Actual savings depend on:
 - Your comfort requirements (more flexibility = more savings)
 - Current heating efficiency
 
-### Is ThermIQ compatible with my heat pump?
+### Is Thermi-Nator compatible with my heat pump?
 
-ThermIQ works with any heat pump that:
+Thermi-Nator works with any heat pump that:
 - Supports MQTT communication, OR
-- Can be controlled via a compatible interface (e.g., Nibe, ThermIQ)
+- Can be controlled via a compatible interface (e.g., Nibe, Thermi-Nator)
 
 Currently tested with:
-- NIBE heat pumps (via ThermIQ)
+- NIBE heat pumps (via Thermi-Nator)
 - CTC heat pumps
 - IVT heat pumps
 
@@ -150,7 +150,7 @@ Contact us if you're unsure about compatibility.
 - Higher COP = more efficient = lower costs
 - Typical range: 2.0-4.5 depending on conditions
 
-ThermIQ optimizes to improve COP:
+Thermi-Nator optimizes to improve COP:
 - Lower supply temperatures when possible
 - Longer run times (less cycling)
 - Heating during optimal conditions
@@ -178,7 +178,7 @@ ThermIQ optimizes to improve COP:
 - Consider buffer tank
 - Use multi-stage compression (if available)
 
-### Can ThermIQ improve my COP?
+### Can Thermi-Nator improve my COP?
 
 **Yes, indirectly:**
 - Longer run times → better efficiency
@@ -196,13 +196,13 @@ ThermIQ optimizes to improve COP:
 
 **Nord Pool schedule:**
 - **Next-day prices:** Published ~13:00-14:00 CET
-- **ThermIQ fetches:** Automatically at 13:00 UTC
+- **Thermi-Nator fetches:** Automatically at 13:00 UTC
 - **Tomorrow's schedule:** Calculated within minutes
 - **Today's schedule:** Updated if needed
 
 ### What if tomorrow's prices aren't available?
 
-**ThermIQ handles this:**
+**Thermi-Nator handles this:**
 - Uses today's prices as estimate
 - Updates when real prices available
 - Doesn't wait for tomorrow's data
@@ -278,7 +278,7 @@ ThermIQ optimizes to improve COP:
 
 **When power returns:**
 1. Raspberry Pi reboots automatically
-2. ThermIQ starts automatically (if configured)
+2. Thermi-Nator starts automatically (if configured)
 3. MQTT reconnects
 4. Heat pump resumes last state
 5. System catches up within minutes
@@ -288,7 +288,7 @@ ThermIQ optimizes to improve COP:
 - Typically maintains temperature using built-in controls
 - No optimization happens (but that's okay)
 
-### Can I access ThermIQ remotely?
+### Can I access Thermi-Nator remotely?
 
 **Local network:** Yes, automatically
 - Any device on same WiFi
@@ -312,7 +312,7 @@ ThermIQ optimizes to improve COP:
 
 **Requirements:**
 - Sufficient RAM (recommend 2GB+ if running multiple)
-- CPU capacity (ThermIQ is lightweight)
+- CPU capacity (Thermi-Nator is lightweight)
 - No port conflicts (default: 3000, 8000, 1883)
 
 ---
@@ -385,7 +385,7 @@ Should see messages if working.
 
 **Native apps:** Not currently planned (PWA sufficient)
 
-### Can ThermIQ control multiple heat pumps?
+### Can Thermi-Nator control multiple heat pumps?
 
 **Current:** Single heat pump only
 
@@ -452,7 +452,7 @@ Should see messages if working.
 ### Where do I report bugs?
 
 **GitHub Issues:**
-https://github.com/leival6ikur/ThermIQ-Optimizer/issues
+https://github.com/leival6ikur/Thermi-Nator-Optimizer/issues
 
 **Please include:**
 - Clear description
@@ -488,7 +488,7 @@ https://github.com/leival6ikur/ThermIQ-Optimizer/issues
 
 ### vs. Heat Pump Built-in Optimization
 
-**ThermIQ advantages:**
+**Thermi-Nator advantages:**
 - Real-time electricity pricing
 - Custom schedules per day
 - Advanced analytics
@@ -504,7 +504,7 @@ https://github.com/leival6ikur/ThermIQ-Optimizer/issues
 
 ### vs. Home Assistant Integration
 
-**ThermIQ advantages:**
+**Thermi-Nator advantages:**
 - Purpose-built for heat pumps
 - Simpler setup
 - Built-in Nord Pool integration
@@ -517,11 +517,11 @@ https://github.com/leival6ikur/ThermIQ-Optimizer/issues
 - More integrations
 - Advanced automations
 
-**Can use together:** ThermIQ via MQTT to Home Assistant
+**Can use together:** Thermi-Nator via MQTT to Home Assistant
 
 ### vs. Manual Price Monitoring
 
-**ThermIQ advantages:**
+**Thermi-Nator advantages:**
 - Automatic 24/7 operation
 - Never miss cheap hours
 - Complex calculations done for you
@@ -539,7 +539,7 @@ https://github.com/leival6ikur/ThermIQ-Optimizer/issues
 
 ## Fun Facts
 
-### How much time does ThermIQ save me?
+### How much time does Thermi-Nator save me?
 
 **Daily:** ~5-10 minutes you'd spend checking prices and adjusting
 **Yearly:** ~30-60 hours of your time saved
@@ -553,16 +553,16 @@ https://github.com/leival6ikur/ThermIQ-Optimizer/issues
 - Pre-heat during low-demand hours (typically more renewable)
 - Improve insulation (less heating needed overall)
 
-### Can ThermIQ make my house warmer faster?
+### Can Thermi-Nator make my house warmer faster?
 
 **No, but:**
 - Can pre-heat before you arrive home
 - Manual override for instant boost
 - Optimizes for consistent temperature (no cold spots)
 
-**Reality:** Heat pump output is fixed. ThermIQ optimizes timing, not power.
+**Reality:** Heat pump output is fixed. Thermi-Nator optimizes timing, not power.
 
-### Does ThermIQ work during summer?
+### Does Thermi-Nator work during summer?
 
 **Yes:**
 - Minimal heating needed = minimal benefit

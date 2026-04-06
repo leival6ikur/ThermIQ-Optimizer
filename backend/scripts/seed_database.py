@@ -88,11 +88,11 @@ async def seed_temperature_readings(db: Database, days: int = 7):
             await conn.execute(
                 """
                 INSERT INTO temperature_readings
-                (timestamp, indoor, outdoor, supply, return_temp, target, brine_in, brine_out, hot_water)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (timestamp, indoor, outdoor, supply, return_temp, target, brine_in, brine_out, hot_water, power, heating)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (current_time, indoor_temp, outdoor_temp, supply_temp, return_temp,
-                 target_temp, brine_in, brine_out, hot_water_temp)
+                 target_temp, brine_in, brine_out, hot_water_temp, power, heating)
             )
 
             readings_count += 1

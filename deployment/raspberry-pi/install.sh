@@ -28,8 +28,8 @@ apt-get update
 
 echo "📦 Installing dependencies..."
 apt-get install -y \
-    python3.11 \
-    python3.11-venv \
+    python3 \
+    python3-venv \
     python3-pip \
     nodejs \
     npm \
@@ -67,7 +67,7 @@ fi
 # Setup Python virtual environment
 echo "🐍 Setting up Python environment..."
 cd "${INSTALL_DIR}/backend"
-python3.11 -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt

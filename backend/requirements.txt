@@ -1,23 +1,23 @@
 # Web Framework
-fastapi==0.109.2
-uvicorn[standard]==0.27.1
-python-multipart==0.0.9
-slowapi==0.1.9
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.9
+slowapi>=0.1.9
 
 # MQTT
 paho-mqtt==1.6.1
 
 # HTTP Client
-httpx==0.26.0
-requests==2.31.0
-aiohttp==3.9.3
+httpx>=0.27.0
+requests>=2.32.0
+aiohttp>=3.11.0
 
 # Weather & IoT
 pyatmo==7.5.0
 
 # Data Validation
-pydantic==2.6.1
-pydantic-settings==2.1.0
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
 
 # Configuration
 PyYAML==6.0.1

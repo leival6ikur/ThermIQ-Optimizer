@@ -47,8 +47,18 @@ mkdir -p "${INSTALL_DIR}"
 cd "${INSTALL_DIR}"
 
 # Determine source directory (script should be run from deployment/raspberry-pi/)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Handle both direct execution and sudo execution
+if [ -n "${SUDO_USER}" ]; then
+    # Running with sudo, use PWD before sudo was invoked
+    SCRIPT_DIR="${PWD}"
+else
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
+
 SOURCE_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
+echo "🔍 Script directory: ${SCRIPT_DIR}"
+echo "🔍 Source directory: ${SOURCE_DIR}"
 
 # Copy application files
 if [ -d "${SOURCE_DIR}/backend" ] && [ -d "${SOURCE_DIR}/frontend" ]; then
@@ -60,6 +70,8 @@ if [ -d "${SOURCE_DIR}/backend" ] && [ -d "${SOURCE_DIR}/frontend" ]; then
     fi
 else
     echo "❌ Error: Source files not found at ${SOURCE_DIR}"
+    echo "   Looking for: ${SOURCE_DIR}/backend and ${SOURCE_DIR}/frontend"
+    echo "   Current directory: ${PWD}"
     echo "Please run this script from the deployment/raspberry-pi directory"
     exit 1
 fi

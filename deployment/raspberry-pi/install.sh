@@ -38,27 +38,20 @@ apt-get install -y \
     git \
     curl
 
+# Determine source directory FIRST (before changing directories)
+# The script should be run from deployment/raspberry-pi/
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
+echo "🔍 Script directory: ${SCRIPT_DIR}"
+echo "🔍 Source directory: ${SOURCE_DIR}"
+
 # Set installation directory
 INSTALL_DIR="/opt/thermi-nator"
 echo "📁 Installation directory: ${INSTALL_DIR}"
 
 # Create installation directory
 mkdir -p "${INSTALL_DIR}"
-cd "${INSTALL_DIR}"
-
-# Determine source directory (script should be run from deployment/raspberry-pi/)
-# Handle both direct execution and sudo execution
-if [ -n "${SUDO_USER}" ]; then
-    # Running with sudo, use PWD before sudo was invoked
-    SCRIPT_DIR="${PWD}"
-else
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-fi
-
-SOURCE_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-
-echo "🔍 Script directory: ${SCRIPT_DIR}"
-echo "🔍 Source directory: ${SOURCE_DIR}"
 
 # Copy application files
 if [ -d "${SOURCE_DIR}/backend" ] && [ -d "${SOURCE_DIR}/frontend" ]; then

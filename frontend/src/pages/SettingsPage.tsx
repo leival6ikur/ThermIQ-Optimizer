@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import type { VATConfig, NetAtmoConfig } from '../types/index.js';
+import type { VATConfig } from '../types/index.js';
 import { NetAtmoSetupOAuth } from '../components/NetAtmoSetupOAuth';
 
 interface Settings {
@@ -523,11 +523,10 @@ export const SettingsPage: React.FC = () => {
         {/* NetAtmo Integration Settings */}
         <div className="card mb-6">
           <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
-            <img src="/thumbnail.svg" alt="" className="w-6 h-6" />
-            NetAtmo Weather Station
+            📡 NetAtmo Weather Station
             {settings.netatmo_enabled && (
               <span className="ml-auto px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                Enabled
+                ✓ Enabled
               </span>
             )}
           </h2>
@@ -540,11 +539,11 @@ export const SettingsPage: React.FC = () => {
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div>
                 <div className="font-medium text-gray-900">
-                  {settings.netatmo_enabled ? 'NetAtmo Configured' : 'NetAtmo Not Configured'}
+                  {settings.netatmo_enabled ? '✓ NetAtmo Configured' : '○ NetAtmo Not Configured'}
                 </div>
                 <div className="text-sm text-gray-600">
                   {settings.netatmo_enabled
-                    ? `Station: ${settings.netatmo_station_name || 'Default'}`
+                    ? `📡 Station: ${settings.netatmo_station_name || 'Default'}`
                     : 'Connect your NetAtmo weather station for better accuracy'}
                 </div>
               </div>
@@ -552,16 +551,168 @@ export const SettingsPage: React.FC = () => {
                 onClick={() => setShowNetAtmoSetup(true)}
                 className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
               >
-                {settings.netatmo_enabled ? 'Configure' : 'Setup'} NetAtmo
+                {settings.netatmo_enabled ? '⚙️ Configure' : '🔗 Setup'} NetAtmo
               </button>
             </div>
 
             {/* Info */}
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-gray-700">
-                <strong>Why NetAtmo?</strong> Your heat pump's sensor reads ~20°C while NetAtmo shows 24.1°C.
+                <strong>💡 Why NetAtmo?</strong> Your heat pump's sensor reads ~20°C while 📡 NetAtmo shows 24.1°C.
                 NetAtmo placement provides more accurate room temperature for better optimization.
               </p>
+            </div>
+
+            {/* Temperature Source Selection */}
+            {settings.netatmo_enabled && (
+              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-4">
+                <h3 className="font-semibold text-gray-900 mb-3">Temperature Data Source</h3>
+
+                {/* Indoor Source */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">🏠 Indoor Temperature</label>
+                    <p className="text-xs text-gray-500">Choose sensor for room temperature</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSettings({ ...settings, indoor_source: 'heat_pump' })}
+                      className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        settings.indoor_source === 'heat_pump'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      🔧 Heat Pump
+                    </button>
+                    <button
+                      onClick={() => setSettings({ ...settings, indoor_source: 'netatmo' })}
+                      className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        settings.indoor_source === 'netatmo'
+                          ? 'bg-green-500 text-white'
+                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      📡 NetAtmo
+                    </button>
+                  </div>
+                </div>
+
+                {/* Outdoor Source */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">🌲 Outdoor Temperature</label>
+                    <p className="text-xs text-gray-500">Choose sensor for outside temperature</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSettings({ ...settings, outdoor_source: 'heat_pump' })}
+                      className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        settings.outdoor_source === 'heat_pump'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      🔧 Heat Pump
+                    </button>
+                    <button
+                      onClick={() => setSettings({ ...settings, outdoor_source: 'netatmo' })}
+                      className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        settings.outdoor_source === 'netatmo'
+                          ? 'bg-green-500 text-white'
+                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      📡 NetAtmo
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Data Polling Information */}
+        <div className="card mb-6">
+          <h2 className="text-xl font-bold mb-2">📊 Data Collection Intervals</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            How often the system collects data from different sources
+          </p>
+
+          <div className="space-y-3">
+            {/* MQTT */}
+            <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🔌</span>
+                <div>
+                  <div className="font-medium text-gray-900">Heat Pump (MQTT)</div>
+                  <div className="text-xs text-gray-600">Temperature, status, power</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-bold text-green-700">Real-time</div>
+                <div className="text-xs text-gray-600">~60 second updates</div>
+              </div>
+            </div>
+
+            {/* NetAtmo */}
+            <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📡</span>
+                <div>
+                  <div className="font-medium text-gray-900">NetAtmo Weather Station</div>
+                  <div className="text-xs text-gray-600">Temperature, humidity</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-bold text-blue-700">Every 5 minutes</div>
+                <div className="text-xs text-gray-600">300 seconds</div>
+              </div>
+            </div>
+
+            {/* Nord Pool */}
+            <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">⚡</span>
+                <div>
+                  <div className="font-medium text-gray-900">Nord Pool Prices</div>
+                  <div className="text-xs text-gray-600">Electricity spot prices</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-bold text-yellow-700">Daily at 13:00 UTC</div>
+                <div className="text-xs text-gray-600">Tomorrow's prices</div>
+              </div>
+            </div>
+
+            {/* Optimization */}
+            <div className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🎯</span>
+                <div>
+                  <div className="font-medium text-gray-900">Schedule Optimization</div>
+                  <div className="text-xs text-gray-600">Heating schedule updates</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-bold text-purple-700">Every 5 minutes</div>
+                <div className="text-xs text-gray-600">300 seconds</div>
+              </div>
+            </div>
+
+            {/* Database Backup */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">💾</span>
+                <div>
+                  <div className="font-medium text-gray-900">Database Backup</div>
+                  <div className="text-xs text-gray-600">Automatic backups</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-bold text-gray-700">Every 24 hours</div>
+                <div className="text-xs text-gray-600">Daily backup</div>
+              </div>
             </div>
           </div>
         </div>

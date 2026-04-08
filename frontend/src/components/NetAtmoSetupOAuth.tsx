@@ -17,7 +17,6 @@ export function NetAtmoSetupOAuth({ onClose }: NetAtmoSetupOAuthProps) {
     client_secret: '',
   });
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -230,10 +229,8 @@ export function NetAtmoSetupOAuth({ onClose }: NetAtmoSetupOAuthProps) {
           {/* Test Result */}
           {testResult && (
             <div className={`mt-3 p-3 rounded-lg ${
-              testResult.success && testResult.indoor_temp !== null
+              testResult.success
                 ? 'bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700'
-                : testResult.success
-                ? 'bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700'
                 : 'bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700'
             }`}>
               <p className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -242,19 +239,52 @@ export function NetAtmoSetupOAuth({ onClose }: NetAtmoSetupOAuthProps) {
               <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
                 {testResult.message}
               </p>
-              {testResult.success && testResult.indoor_temp !== null && testResult.indoor_temp !== undefined ? (
-                <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                  <p>✓ Indoor: {testResult.indoor_temp?.toFixed(1)}°C</p>
-                  <p>✓ Outdoor: {testResult.outdoor_temp?.toFixed(1)}°C</p>
+
+              {testResult.success && testResult.stations && testResult.stations.length > 0 && (
+                <div className="mt-3 space-y-3">
+                  {testResult.stations.map((station: any, idx: number) => (
+                    <div key={idx} className="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
+                      <p className="text-xs font-semibold text-gray-900 dark:text-white mb-2">
+                        📡 {station.name}
+                      </p>
+                      <div className="space-y-1">
+                        {station.modules && station.modules.map((module: any, midx: number) => (
+                          <div key={midx} className="text-xs text-gray-700 dark:text-gray-300 flex justify-between">
+                            <span className="font-medium">{module.name} ({module.type}):</span>
+                            <span>
+                              {module.temperature !== null && module.temperature !== undefined && (
+                                <span className="ml-2">🌡️ {module.temperature.toFixed(1)}°C</span>
+                              )}
+                              {module.humidity !== null && module.humidity !== undefined && (
+                                <span className="ml-2">💧 {module.humidity}%</span>
+                              )}
+                              {module.co2 !== null && module.co2 !== undefined && (
+                                <span className="ml-2">🌫️ {module.co2}ppm</span>
+                              )}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  {testResult.indoor_temp !== null && testResult.indoor_temp !== undefined && (
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
+                      Main readings - Indoor: {testResult.indoor_temp?.toFixed(1)}°C | Outdoor: {testResult.outdoor_temp?.toFixed(1)}°C
+                    </p>
+                  )}
+
                   <p className="mt-2 text-xs text-green-700 dark:text-green-300">
-                    NetAtmo is working! Temperature data will be polled every 10 minutes after backend restart.
+                    ✓ NetAtmo is working! Restart backend to start polling every 10 minutes.
                   </p>
                 </div>
-              ) : testResult.success ? (
+              )}
+
+              {testResult.success && (!testResult.stations || testResult.stations.length === 0) && (
                 <p className="mt-2 text-sm text-yellow-800 dark:text-yellow-200">
-                  ⚠️ Connected but no temperature data available. Check your NetAtmo station status at my.netatmo.com
+                  ⚠️ Connected but no stations found. Check your NetAtmo account at my.netatmo.com
                 </p>
-              ) : null}
+              )}
             </div>
           )}
         </div>

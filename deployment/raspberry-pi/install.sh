@@ -31,6 +31,12 @@ apt-get install -y \
     python3 \
     python3-venv \
     python3-pip \
+    python3-dev \
+    build-essential \
+    libffi-dev \
+    libssl-dev \
+    cargo \
+    rustc \
     nodejs \
     npm \
     mosquitto \
@@ -71,11 +77,15 @@ fi
 
 # Setup Python virtual environment
 echo "🐍 Setting up Python environment..."
+echo "⚠️  This may take 10-15 minutes on Raspberry Pi (compiling Rust packages)..."
 cd "${INSTALL_DIR}/backend"
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
-pip install -r requirements.txt
+
+# Install dependencies with increased timeout for slow compilation
+echo "📦 Installing Python packages (this will take a while)..."
+pip install --no-cache-dir --timeout 1000 -r requirements.txt
 
 # Setup Node.js frontend
 echo "⚛️  Setting up frontend..."

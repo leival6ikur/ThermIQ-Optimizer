@@ -11,10 +11,6 @@ Smart control system for Thermia Diplomat Optimum G3 heat pump with Nord Pool pr
 - **Manual override**: Take control anytime with immediate heat pump commands
 - **MQTT communication**: Reliable IoT protocol for device integration
 
-## 🏠 Installation Location
-
-System configured for: **Sirkli 6, Lombi küla, Tartu vald, Estonia**
-
 ## 🚀 Quick Start
 
 ### Prerequisites
